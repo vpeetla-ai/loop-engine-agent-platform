@@ -4,7 +4,8 @@
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Portfolio](https://img.shields.io/badge/🌐_venkat--ai.com-Portfolio-5eead4?style=flat-square)](https://venkat-ai.com/work)
-[![Live Demo](https://img.shields.io/badge/▶_Live_Demo-ODAEU_Trace-8b5cf6?style=flat-square)](https://loop-engine-agent-platform.vercel.app)
+[![Live Demo](https://img.shields.io/badge/▶_Live_Demo-LoopForge_UI-8b5cf6?style=flat-square)](https://demo-omega-taupe.vercel.app)
+[![API](https://img.shields.io/badge/API-Render-46E3B7?style=flat-square)](https://loopforge-api.onrender.com/health)
 
 > **The problem:** Static RAG configs and one-shot prompts do not improve. Production agents need **closed loops** that evaluate, tune retrieval, and store lessons.
 >
@@ -42,10 +43,11 @@ Research foundation: [docs/RESEARCH.md](docs/RESEARCH.md) (MemPro, MUSE, Harness
 
 | Surface | URL |
 |---------|-----|
-| **Trace UI** | [loop-engine-agent-platform.vercel.app](https://loop-engine-agent-platform.vercel.app) |
-| **API** | Deploy backend to Render (`render.yaml`) |
+| **Demo UI** | [demo-omega-taupe.vercel.app](https://demo-omega-taupe.vercel.app) |
+| **API** | [loopforge-api.onrender.com](https://loopforge-api.onrender.com) |
+| **Health** | [`/health`](https://loopforge-api.onrender.com/health) |
 
-Click **Run ODAEU loop** — watch Observe → Decide → Act → Evaluate → Update phases animate. RAG config v1 fails eval → evolve loop tunes `top_k` / `hybrid_alpha` → v2 passes.
+Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph loop. ODAEU RAG tuning available via API (`POST /api/run`).
 
 ---
 

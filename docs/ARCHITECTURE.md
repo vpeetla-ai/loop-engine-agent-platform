@@ -1,5 +1,17 @@
 # Architecture
 
+## Live production URLs
+
+| Surface | URL |
+|---------|-----|
+| **Demo UI** | [demo-omega-taupe.vercel.app](https://demo-omega-taupe.vercel.app) |
+| **API** | [loopforge-api.onrender.com](https://loopforge-api.onrender.com) |
+| **Source** | [github.com/vpeetla-ai/loop-engine-agent-platform](https://github.com/vpeetla-ai/loop-engine-agent-platform) |
+| **Portfolio** | [venkat-ai.com/work](https://venkat-ai.com/work) |
+| **Architecture hub** | [ai-architecture-portfolio](https://github.com/vpeetla-ai/ai-architecture-portfolio) |
+
+---
+
 ## Modern agent stack
 
 ```text
@@ -17,13 +29,15 @@
    └────┬─────┘        └──────────┘        └──────────┘
         │
         ▼
-   ┌──────────┐
-   │   MCP    │  filesystem · search · (extensible)
-   │  TOOLS   │
-   └──────────┘
+   ┌──────────┐        ┌──────────┐
+   │   MCP    │        │ LangGraph│
+   │  TOOLS   │        │  graphs  │
+   └──────────┘        └──────────┘
 ```
 
-## ODAEU outer loop
+## Three LangGraph / harness loops
+
+### 1. ODAEU harness (RAG tuning)
 
 | Phase | Component | Output |
 |-------|-----------|--------|
@@ -33,12 +47,48 @@
 | **Evaluate** | `Evaluator` | scores + failure modes |
 | **Update** | `EvolveLoop` + `RAGTuner` + `MemoryStore` | config vN+1, lesson written |
 
+`POST /api/run` · `src/loop_engine/harness/`
+
+### 2. Coding agent loop (Orchestrator · Coding · Review · Quality)
+
+```text
+orchestrate → memory_retrieve → code → review → quality
+  → route_after_quality (retry | HITL | pass)
+  → memory_write → self_improve → END
+```
+
+`POST /api/agent-loop` · `src/loop_engine/graph/build.py`
+
+### 3. Repo fix loop (real GitHub → PR)
+
+```text
+clone → pytest scan → orchestrate → patch files → review → quality
+  → branch loopforge/fix-{run_id} → commit → push branch → GitHub PR
+```
+
+**Never pushes to `main`.** All fixes land on a branch + pull request.
+
+| Agent | Role |
+|-------|------|
+| **Orchestrator** | Plans task, rewrites coding prompt on retry |
+| **Coding** | Reads repo files, applies JSON patches |
+| **Review** | Scores diff across correctness · security · complexity · style |
+| **Quality** | Runs project pytest in cloned workspace |
+| **Memory** | Retrieves lessons, writes on pass |
+| **Self-improve** | Promotes prompt version on outer loop tick |
+
+`POST /api/repo-fix` · `src/loop_engine/graph/repo_build.py` · `src/loop_engine/workspace/`
+
+---
+
 ## Package layout
 
 ```text
 src/loop_engine/
-  harness/     # AgentHarness — entry point
-  loops/       # react, critique, evolve
+  harness/     # AgentHarness — ODAEU entry
+  graph/       # LangGraph: build, repo_build, nodes, routing, state
+  workspace/   # clone, pytest, git branch, GitHub PR API
+  loops/       # react, evolve
   rag/         # HybridRetriever, RAGConfig, RAGTuner
   memory/      # MemoryStore, Lesson, version tree
   mcp/         # MCPBridge + local tool adapters
@@ -46,32 +96,26 @@ src/loop_engine/
   models/      # LLM providers (mock + groq)
 
 backend/app/   # FastAPI — production API
-demo/          # Vercel static trace viewer
+demo/          # Vercel static UI (wired to Render API)
 ```
-
-## Data flow (single query)
-
-1. `AgentHarness.run(query)` loads memory hints + current `RAGConfig`.
-2. `AttemptLoop` retrieves chunks → `ReActLoop` may call MCP `read_file` / `search_docs`.
-3. LLM drafts answer from context + tool output.
-4. `Evaluator.evaluate(query, answer, chunks, gold?)` → pass/fail + signals.
-5. If fail and budget remains: `EvolveLoop` diagnoses (low recall vs low faithfulness), `RAGTuner` mutates config, `MemoryStore` appends lesson.
-6. Retry with new config — trace records all versions.
 
 ## Deployment
 
 | Service | Role |
 |---------|------|
-| Vercel | Static demo UI + optional API proxy |
-| Render | FastAPI backend |
-| Local JSON | Memory + RAG version tree (v1; Postgres optional v2) |
+| [Vercel](https://demo-omega-taupe.vercel.app) | Static demo UI |
+| [Render](https://loopforge-api.onrender.com) | FastAPI + Docker (git, pytest) |
+| GitHub API | PR creation via `GITHUB_TOKEN` |
 
-## Integration with portfolio stack
+See [DEPLOY.md](DEPLOY.md) for env vars and token scopes.
 
-| Layer | Repo |
-|-------|------|
-| Orchestration | venkat-ai-platform |
-| Governance | aegisai-enterprise-agent-platform |
-| Knowledge | enterprise_rag_platform |
-| **Self-improvement** | **loop-engine-agent-platform** |
-| AgentOps | aegisloop-agentops-workbench |
+## Integration with portfolio stack ([vpeetla-ai](https://github.com/vpeetla-ai))
+
+| Question | System |
+|----------|--------|
+| What should agents do? | [venkat-ai-platform](https://github.com/vpeetla-ai/venkat-ai-platform) |
+| What are agents allowed? | [aegisai-enterprise-agent-platform](https://github.com/vpeetla-ai/aegisai-enterprise-agent-platform) |
+| What knowledge can they use? | [enterprise_rag_platform](https://github.com/vpeetla-ai/enterprise_rag_platform) |
+| How do we operate fleets? | [aegisloop-agentops-workbench](https://github.com/vpeetla-ai/aegisloop-agentops-workbench) |
+| What do they produce? | [ai-content-factory](https://github.com/vpeetla-ai/ai-content-factory) |
+| **How do agents improve?** | **loop-engine-agent-platform (this repo)** |
