@@ -60,7 +60,11 @@ def repo_scan_node(state: AgentLoopState, workspace: WorkspaceManager) -> dict[s
 
 
 def _parse_patches(raw: str) -> tuple[list[dict[str, str]], str]:
-    match = re.search(r"\{[\s\S]*\}", raw)
+    text = raw.strip()
+    fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text, flags=re.IGNORECASE)
+    if fence:
+        text = fence.group(1).strip()
+    match = re.search(r"\{[\s\S]*\}", text)
     if not match:
         return [], raw[:200]
     try:

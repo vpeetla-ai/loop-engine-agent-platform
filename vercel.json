@@ -1,6 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo 'static demo'",
   "buildCommand": "echo 'loopforge demo'",
-  "outputDirectory": "demo"
+  "outputDirectory": "demo",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- demo/ vercel.json"
 }
