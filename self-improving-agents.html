@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Improving Loop Engineering Agents</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #04040D;
+  --s1: #080812;
+  --s2: #0C0C1A;
+  --s3: #101020;
+  --border: #181830;
+  --border2: #222240;
+
+  /* Agent colors — each agent has its own identity */
+  --orch: #FF6B35;      /* Orchestrator — amber-orange, commands */
+  --code: #00D4FF;      /* Coding Agent — electric blue, creation */
+  --review: #B44FFF;    /* Review Agent — violet, judgment */
+  --quality: #00FF88;   /* Quality Agent — green, validation */
+  --memory: #FFD700;    /* Memory/KB — gold, knowledge */
+  --hitl: #FF3366;      /* HITL — rose, human control */
+  --improve: #FF6B35;   /* Self-improve — same as orch */
+
+  --text: #D8DBF0;
+  --muted: #50507A;
+  --muted2: #30305A;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Space Grotesk', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ══════════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════════ */
+.hdr {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px;
+  background: rgba(4,4,13,0.92);
+  border-bottom: 1px solid var(--border2);
+  backdrop-filter: blur(16px);
+}
+.hdr-brand { display: flex; align-items: center; gap: 10px; }
+.hdr-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--orch), var(--code));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.hdr-title { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.01em; }
+.hdr-sub { font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1px; }
+.tabs { display: flex; gap: 2px; background: var(--s2); border: 1px solid var(--border2); border-radius: 8px; padding: 3px; }
+.tab { background: none; border: none; cursor: pointer; padding: 6px 14px; border-radius: 5px; font-size: 0.72rem; font-weight: 700; color: var(--muted); font-family: var(--sans); letter-spacing: 0.02em; transition: all 0.15s; }
+.tab.on { background: var(--s3); color: var(--text); box-shadow: inset 0 0 0 1px var(--border2); }
+
+/* ══════════════════════════════════════════════════
+   VIEWS
+══════════════════════════════════════════════════ */
+.view { display: none; padding: 24px; }
+.view.on { display: block; }
+
+/* ══════════════════════════════════════════════════
+   MAIN LOOP DIAGRAM  
+══════════════════════════════════════════════════ */
+.loop-canvas {
+  position: relative;
+  min-width: 1000px;
+}
+
+/* Central ring */
+.ring-wrap {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 0;
+  position: relative;
+}
+
+/* The big loop visual using SVG */
+.loop-svg-wrap {
+  position: relative;
+  width: 700px; height: 700px;
+  flex-shrink: 0;
+}
+
+#loopSVG { position: absolute; inset: 0; }
+
+/* Agent orbs on the ring */
+.agent-orb {
+  position: absolute;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  border: 2px solid;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+.agent-orb:hover { transform: translate(-50%,-50%) scale(1.08); }
+.agent-orb.pulse { animation: orb-pulse 2s ease-in-out infinite; }
+
+@keyframes orb-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+.orb-icon { font-size: 1.8rem; margin-bottom: 4px; }
+.orb-name { font-size: 0.62rem; font-weight: 800; line-height: 1.2; letter-spacing: 0.04em; text-transform: uppercase; }
+.orb-model { font-size: 0.52rem; font-family: var(--mono); color: rgba(255,255,255,0.5); margin-top: 3px; }
+
+/* Center hub */
+.center-hub {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 130px; height: 130px;
+  border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  z-index: 20;
+  cursor: pointer;
+  background: radial-gradient(circle at 40% 35%, #1A1030, #0A0818);
+  border: 2px solid var(--orch);
+  box-shadow: 0 0 40px rgba(255,107,53,0.3), inset 0 0 30px rgba(255,107,53,0.05);
+}
+.hub-icon { font-size: 2rem; }
+.hub-name { font-size: 0.65rem; font-weight: 800; color: var(--orch); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; line-height: 1.2; }
+.hub-sub { font-size: 0.52rem; color: var(--muted); margin-top: 2px; }
+
+/* Side panels */
+.loop-side {
+  display: flex; flex-direction: column; gap: 12px;
+  width: 220px; flex-shrink: 0;
+}
+
+/* ── Info cards (side of diagram) ── */
+.info-card {
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 14px;
+}
+.info-card-hd {
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.info-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.info-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 0.7rem;
+}
+.info-row:last-child { border-bottom: none; }
+.ir-k { color: var(--muted); }
+.ir-v { color: var(--text); font-family: var(--mono); font-size: 0.65rem; font-weight: 600; text-align: right; max-width: 120px; line-height: 1.3; }
+
+/* ══════════════════════════════════════════════════
+   LOOP STEP TIMELINE
+══════════════════════════════════════════════════ */
+.timeline {
+  margin-top: 32px;
+  min-width: 1000px;
+}
+.tl-title {
+  font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--muted); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.tl-title::before, .tl-title::after { content: ''; flex: 1; height: 1px; background: var(--border2); }
+
+.tl-steps {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0;
+  position: relative;
+}
+.tl-steps::before {
+  content: '';
+  position: absolute;
+  top: 38px; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--code), var(--review), var(--quality), var(--orch), var(--code));
+}
+
+.tl-step {
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; padding-bottom: 12px;
+  cursor: pointer;
+}
+.tl-step:hover .tl-circle { transform: scale(1.15); }
+
+.tl-circle {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; border: 2px solid;
+  transition: transform 0.2s;
+  z-index: 2; background: var(--bg);
+  position: relative;
+}
+.tl-label {
+  font-size: 0.6rem; font-weight: 700; text-align: center;
+  margin-top: 8px; line-height: 1.3; text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tl-sublabel { font-size: 0.55rem; color: var(--muted); font-family: var(--mono); margin-top: 2px; text-align: center; }
+
+/* ══════════════════════════════════════════════════
+   AGENT DETAIL CARDS VIEW
+══════════════════════════════════════════════════ */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.agent-detail-card {
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.agent-detail-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+}
+.agent-detail-card:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+
+.adc-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.adc-icon { font-size: 2rem; flex-shrink: 0; }
+.adc-meta {}
+.adc-name { font-size: 1rem; font-weight: 800; line-height: 1.1; }
+.adc-role { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+.adc-model {
+  font-size: 0.6rem; font-family: var(--mono);
+  padding: 2px 7px; border-radius: 20px;
+  display: inline-block; margin-top: 5px; font-weight: 600;
+}
+
+.adc-section { margin-top: 12px; }
+.adc-section-title { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px; }
+
+.capability-list { display: flex; flex-direction: column; gap: 5px; }
+.cap-item { display: flex; align-items: flex-start; gap: 7px; font-size: 0.72rem; line-height: 1.4; }
+.cap-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+
+.tool-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tool-chip {
+  font-size: 0.58rem; font-family: var(--mono);
+  background: var(--s3); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 2px 7px; color: var(--muted);
+}
+
+.loop-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.06em; padding: 3px 9px; border-radius: 20px;
+  margin-top: 10px;
+}
+
+/* ══════════════════════════════════════════════════
+   SELF-IMPROVEMENT MECHANICS VIEW
+══════════════════════════════════════════════════ */
+.improve-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.improve-block {
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 18px;
+}
+.ib-title {
+  font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ib-icon { font-size: 1.1rem; }
+
+.feedback-loop {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.fl-step {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 12px;
+  background: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.72rem; line-height: 1.4;
+  position: relative;
+}
+.fl-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; font-weight: 800; flex-shrink: 0;
+  font-family: var(--mono);
+}
+.fl-arrow {
+  text-align: center; color: var(--muted2); font-size: 0.8rem;
+  margin: -4px 0 -4px 24px;
+}
+
+.code-block {
+  background: #040410;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+
+.metric-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+}
+.metric-row:last-child { border-bottom: none; }
+.metric-bar-wrap { flex: 1; margin: 0 12px; height: 4px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.metric-bar { height: 100%; border-radius: 2px; transition: width 0.8s; }
+.metric-val { font-family: var(--mono); font-size: 0.65rem; font-weight: 700; }
+
+/* ══════════════════════════════════════════════════
+   MODAL OVERLAY
+══════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(4,4,13,0.85);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 560px; width: 90%;
+  max-height: 80vh; overflow-y: auto;
+  transform: translateY(20px);
+  transition: transform 0.2s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-close {
+  float: right; background: var(--s3); border: 1px solid var(--border2);
+  border-radius: 6px; color: var(--muted); width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.9rem; flex-shrink: 0;
+}
+.modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+.modal-sub { font-size: 0.72rem; color: var(--muted); margin-bottom: 18px; }
+.modal-section { margin-bottom: 14px; }
+.modal-section-title { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 7px; }
+
+/* ══════════════════════════════════════════════════
+   ANIMATED FLOW LINES (on loop diagram hover)
+══════════════════════════════════════════════════ */
+@keyframes flow-dash {
+  to { stroke-dashoffset: -20; }
+}
+.flow-line {
+  stroke-dasharray: 6 4;
+  animation: flow-dash 0.8s linear infinite;
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.rotating-ring {
+  transform-origin: 350px 350px;
+  animation: rotate-slow 20s linear infinite;
+}
+.rotating-ring-r {
+  transform-origin: 350px 350px;
+  animation: rotate-slow 15s linear infinite reverse;
+}
+
+/* active step highlight */
+.tl-step.active .tl-circle {
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.1), 0 0 20px currentColor;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.blink { animation: blink 1.4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-icon">♾️</div>
+    <div>
+      <div class="hdr-title">Self-Improving Loop Engineering Agents</div>
+      <div class="hdr-sub">Coding · Review · Quality · Orchestrator · Reflection · LangGraph</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchView('loop', this)">Loop Diagram</button>
+    <button class="tab" onclick="switchView('agents', this)">Agent Cards</button>
+    <button class="tab" onclick="switchView('improve', this)">Self-Improvement</button>
+    <button class="tab" onclick="switchView('code', this)">LangGraph Code</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  VIEW 1: LOOP DIAGRAM
+══════════════════════════════════════════════════ -->
+<div id="view-loop" class="view on">
+  <div class="loop-canvas">
+
+    <div class="ring-wrap" style="gap:24px">
+
+      <!-- Left info panel -->
+      <div class="loop-side">
+        <div class="info-card">
+          <div class="info-card-hd"><div class="info-dot" style="background:var(--code)"></div>Coding Agent</div>
+          <div class="info-row"><span class="ir-k">Primary</span><span class="ir-v">Gemini 2.5 Flash</span></div>
+          <div class="info-row"><span class="ir-k">Fallback</span><span class="ir-v">Claude Haiku 4.5</span></div>
+          <div class="info-row"><span class="ir-k">Tools</span><span class="ir-v">code_exec, bash, write_file</span></div>
+          <div class="info-row"><span class="ir-k">Output</span><span class="ir-v">code + tests + diff</span></div>
+          <div class="info-row"><span class="ir-k">Loop role</span><span class="ir-v">Generate → get reviewed → refine</span></div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-hd"><div class="info-dot" style="background:var(--review)"></div>Review Agent</div>
+          <div class="info-row"><span class="ir-k">Primary</span><span class="ir-v">Groq Llama 3.3 70B</span></div>
+          <div class="info-row"><span class="ir-k">Pattern</span><span class="ir-v">Reflection / Critique</span></div>
+          <div class="info-row"><span class="ir-k">Checks</span><span class="ir-v">Logic · Security · Style</span></div>
+          <div class="info-row"><span class="ir-k">Output</span><span class="ir-v">score + issues[] + suggestions[]</span></div>
+          <div class="info-row"><span class="ir-k">Loop role</span><span class="ir-v">Score → annotate → route back</span></div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-hd"><div class="info-dot" style="background:var(--memory)"></div>Memory / KB</div>
+          <div class="info-row"><span class="ir-k">Storage</span><span class="ir-v">Pinecone + Redis</span></div>
+          <div class="info-row"><span class="ir-k">Content</span><span class="ir-v">past runs · patterns · errors</span></div>
+          <div class="info-row"><span class="ir-k">Retrieval</span><span class="ir-v">RAG on agent decisions</span></div>
+          <div class="info-row"><span class="ir-k">Write</span><span class="ir-v">after every successful loop</span></div>
+        </div>
+      </div>
+
+      <!-- Central ring SVG -->
+      <div class="loop-svg-wrap">
+        <svg id="loopSVG" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background atmosphere -->
+          <defs>
+            <radialGradient id="bgGrad" cx="50%" cy="50%">
+              <stop offset="0%" stop-color="#0F0F28" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#04040D" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <circle cx="350" cy="350" r="320" fill="url(#bgGrad)"/>
+
+          <!-- Outer decorative ring (slow rotate) -->
+          <g class="rotating-ring" opacity="0.2">
+            <circle cx="350" cy="350" r="290" fill="none" stroke="#222244" stroke-width="1" stroke-dasharray="4 8"/>
+          </g>
+
+          <!-- Inner decorative ring (counter rotate) -->
+          <g class="rotating-ring-r" opacity="0.15">
+            <circle cx="350" cy="350" r="200" fill="none" stroke="#334" stroke-width="1" stroke-dasharray="2 6"/>
+          </g>
+
+          <!-- Main loop circle path (the actual ring) -->
+          <circle cx="350" cy="350" r="250" fill="none" stroke="#1A1A3A" stroke-width="2"/>
+
+          <!-- Animated flow arrows on the ring (clockwise) -->
+          <!-- We draw arc segments between agents, each a different color -->
+
+          <!-- Orchestrator → Coding (top to right) -->
+          <path d="M 350 100 A 250 250 0 0 1 590 440" fill="none" stroke="var(--orch)" stroke-width="2.5" opacity="0.5" class="flow-line"/>
+          <!-- Coding → Review (right arc) -->
+          <path d="M 590 440 A 250 250 0 0 1 350 600" fill="none" stroke="var(--code)" stroke-width="2.5" opacity="0.5" class="flow-line" style="animation-delay:-0.4s"/>
+          <!-- Review → Quality (bottom arc) -->
+          <path d="M 350 600 A 250 250 0 0 1 110 440" fill="none" stroke="var(--review)" stroke-width="2.5" opacity="0.5" class="flow-line" style="animation-delay:-0.8s"/>
+          <!-- Quality → Memory (left-bottom arc) -->
+          <path d="M 110 440 A 250 250 0 0 1 110 260" fill="none" stroke="var(--quality)" stroke-width="2.5" opacity="0.5" class="flow-line" style="animation-delay:-1.2s"/>
+          <!-- Memory → Orchestrator (top-left arc) -->
+          <path d="M 110 260 A 250 250 0 0 1 350 100" fill="none" stroke="var(--memory)" stroke-width="2.5" opacity="0.5" class="flow-line" style="animation-delay:-1.6s"/>
+
+          <!-- Spoke: Orchestrator ↔ center -->
+          <line x1="350" y1="220" x2="350" y2="285" stroke="var(--orch)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" class="flow-line"/>
+          <!-- Spoke: Coding ↔ center -->
+          <line x1="462" y1="417" x2="415" y2="390" stroke="var(--code)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" class="flow-line" style="animation-delay:-0.3s"/>
+          <!-- Spoke: Review ↔ center -->
+          <line x1="350" y1="477" x2="350" y2="415" stroke="var(--review)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" class="flow-line" style="animation-delay:-0.6s"/>
+          <!-- Spoke: Quality ↔ center -->
+          <line x1="237" y1="417" x2="285" y2="390" stroke="var(--quality)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" class="flow-line" style="animation-delay:-0.9s"/>
+          <!-- Spoke: Memory ↔ center -->
+          <line x1="237" y1="283" x2="285" y2="310" stroke="var(--memory)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" class="flow-line" style="animation-delay:-1.2s"/>
+
+          <!-- Loop direction arrows (arrowheads on ring) -->
+          <polygon points="348,100 358,116 338,116" fill="var(--orch)" opacity="0.8"/>
+          <polygon points="588,438 576,452 602,450" fill="var(--code)" opacity="0.8"/>
+          <polygon points="352,598 338,584 362,582" fill="var(--review)" opacity="0.8"/>
+          <polygon points="112,262 124,276 104,280" fill="var(--quality)" opacity="0.8"/>
+
+          <!-- Feedback arc (quality → coding, the retry path) -->
+          <path d="M 110 440 Q 30 350 110 260" fill="none" stroke="var(--hitl)" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.4" class="flow-line" style="animation-direction:reverse"/>
+          <text x="44" y="358" fill="var(--hitl)" font-size="9" font-family="JetBrains Mono" opacity="0.7" text-anchor="middle">retry</text>
+          <text x="44" y="368" fill="var(--hitl)" font-size="9" font-family="JetBrains Mono" opacity="0.7" text-anchor="middle">loop</text>
+
+          <!-- HITL branch arrow -->
+          <line x1="590" y1="440" x2="668" y2="350" stroke="var(--hitl)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.5"/>
+          <text x="672" y="345" fill="var(--hitl)" font-size="9" font-family="JetBrains Mono" opacity="0.8">HITL</text>
+          <text x="672" y="355" fill="var(--hitl)" font-size="9" font-family="JetBrains Mono" opacity="0.8">gate</text>
+
+          <!-- Self-improve annotation -->
+          <path d="M 420 130 Q 500 80 500 160" fill="none" stroke="var(--improve)" stroke-width="1" stroke-dasharray="2 3" opacity="0.4"/>
+          <text x="510" y="120" fill="var(--improve)" font-size="9" font-family="JetBrains Mono" opacity="0.7">self-</text>
+          <text x="510" y="130" fill="var(--improve)" font-size="9" font-family="JetBrains Mono" opacity="0.7">improve</text>
+
+        </svg>
+
+        <!-- Agent orbs positioned on ring -->
+        <!-- Orchestrator: top -->
+        <div class="agent-orb" style="top:14.3%;left:50%;border-color:var(--orch);background:rgba(255,107,53,0.1);color:var(--orch)" onclick="openModal('orch')">
+          <div class="orb-icon">🧠</div>
+          <div class="orb-name" style="color:var(--orch)">Orchestrator</div>
+          <div class="orb-model">Claude Sonnet / GPT-4o</div>
+        </div>
+
+        <!-- Coding: right -->
+        <div class="agent-orb" style="top:63%;left:84.3%;border-color:var(--code);background:rgba(0,212,255,0.08);color:var(--code)" onclick="openModal('code')">
+          <div class="orb-icon">⌨️</div>
+          <div class="orb-name" style="color:var(--code)">Coding Agent</div>
+          <div class="orb-model">Gemini 2.5 Flash</div>
+        </div>
+
+        <!-- Review: bottom -->
+        <div class="agent-orb" style="top:85.7%;left:50%;border-color:var(--review);background:rgba(180,79,255,0.08);color:var(--review)" onclick="openModal('review')">
+          <div class="orb-icon">🔍</div>
+          <div class="orb-name" style="color:var(--review)">Review Agent</div>
+          <div class="orb-model">Groq Llama 3.3 70B</div>
+        </div>
+
+        <!-- Quality: bottom-left -->
+        <div class="agent-orb" style="top:63%;left:15.7%;border-color:var(--quality);background:rgba(0,255,136,0.07);color:var(--quality)" onclick="openModal('quality')">
+          <div class="orb-icon">✅</div>
+          <div class="orb-name" style="color:var(--quality)">Quality Agent</div>
+          <div class="orb-model">Groq / Cerebras</div>
+        </div>
+
+        <!-- Memory: top-left -->
+        <div class="agent-orb" style="top:37.2%;left:15.7%;border-color:var(--memory);background:rgba(255,215,0,0.07);color:var(--memory)" onclick="openModal('memory')">
+          <div class="orb-icon">🗃️</div>
+          <div class="orb-name" style="color:var(--memory)">Memory / KB</div>
+          <div class="orb-model">Pinecone + Redis</div>
+        </div>
+
+        <!-- Center Hub -->
+        <div class="center-hub" onclick="openModal('hub')">
+          <div class="hub-icon">♾️</div>
+          <div class="hub-name">LangGraph<br>State Engine</div>
+          <div class="hub-sub">interrupt_before · checkpointer</div>
+        </div>
+      </div>
+
+      <!-- Right info panel -->
+      <div class="loop-side">
+        <div class="info-card">
+          <div class="info-card-hd"><div class="info-dot" style="background:var(--quality)"></div>Quality Agent</div>
+          <div class="info-row"><span class="ir-k">Primary</span><span class="ir-v">Groq Llama 3.3 70B</span></div>
+          <div class="info-row"><span class="ir-k">Fallback</span><span class="ir-v">Cerebras (1M tok/day)</span></div>
+          <div class="info-row"><span class="ir-k">Runs</span><span class="ir-v">pytest · coverage · lint</span></div>
+          <div class="info-row"><span class="ir-k">Output</span><span class="ir-v">pass/fail + metrics</span></div>
+          <div class="info-row"><span class="ir-k">Loop role</span><span class="ir-v">Gate keeper — pass or retry</span></div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-hd"><div class="info-dot" style="background:var(--orch)"></div>Orchestrator</div>
+          <div class="info-row"><span class="ir-k">Primary</span><span class="ir-v">Claude Sonnet 4.6</span></div>
+          <div class="info-row"><span class="ir-k">Pattern</span><span class="ir-v">Plan & Execute + Reflection</span></div>
+          <div class="info-row"><span class="ir-k">Controls</span><span class="ir-v">max_iterations · thresholds</span></div>
+          <div class="info-row"><span class="ir-k">Self-improves</span><span class="ir-v">rewrites own prompt on fail</span></div>
+          <div class="info-row"><span class="ir-k">Loop role</span><span class="ir-v">Route · Decide · Adapt</span></div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-hd"><div class="info-dot" style="background:var(--hitl)"></div>HITL Gate</div>
+          <div class="info-row"><span class="ir-k">Trigger</span><span class="ir-v">quality_score &lt; 0.8 after 3 retries</span></div>
+          <div class="info-row"><span class="ir-k">Or</span><span class="ir-v">security flag raised</span></div>
+          <div class="info-row"><span class="ir-k">Or</span><span class="ir-v">confidence &lt; threshold</span></div>
+          <div class="info-row"><span class="ir-k">LangGraph</span><span class="ir-v">interrupt_before="hitl"</span></div>
+          <div class="info-row"><span class="ir-k">Resume</span><span class="ir-v">POST /hitl/approve</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Timeline of one complete loop iteration -->
+    <div class="timeline">
+      <div class="tl-title">One Complete Loop Iteration — Steps in Sequence</div>
+      <div class="tl-steps">
+
+        <div class="tl-step active" onclick="activateStep(this,0)">
+          <div class="tl-circle" style="border-color:var(--orch);color:var(--orch)">🧠</div>
+          <div class="tl-label" style="color:var(--orch)">Plan</div>
+          <div class="tl-sublabel">Orchestrator<br>decomposes task</div>
+        </div>
+
+        <div class="tl-step" onclick="activateStep(this,1)">
+          <div class="tl-circle" style="border-color:var(--code);color:var(--code)">⌨️</div>
+          <div class="tl-label" style="color:var(--code)">Generate</div>
+          <div class="tl-sublabel">Coding Agent<br>writes code + tests</div>
+        </div>
+
+        <div class="tl-step" onclick="activateStep(this,2)">
+          <div class="tl-circle" style="border-color:var(--review);color:var(--review)">🔍</div>
+          <div class="tl-label" style="color:var(--review)">Review</div>
+          <div class="tl-sublabel">Review Agent<br>critiques + scores</div>
+        </div>
+
+        <div class="tl-step" onclick="activateStep(this,3)">
+          <div class="tl-circle" style="border-color:var(--quality);color:var(--quality)">🧪</div>
+          <div class="tl-label" style="color:var(--quality)">Test</div>
+          <div class="tl-sublabel">Quality Agent<br>runs pytest/lint</div>
+        </div>
+
+        <div class="tl-step" onclick="activateStep(this,4)">
+          <div class="tl-circle" style="border-color:var(--orch);color:var(--orch)">⚖️</div>
+          <div class="tl-label" style="color:var(--orch)">Decide</div>
+          <div class="tl-sublabel">Orchestrator<br>pass/retry/escalate</div>
+        </div>
+
+        <div class="tl-step" onclick="activateStep(this,5)">
+          <div class="tl-circle" style="border-color:var(--memory);color:var(--memory)">💾</div>
+          <div class="tl-label" style="color:var(--memory)">Learn</div>
+          <div class="tl-sublabel">Memory Agent<br>stores patterns</div>
+        </div>
+
+        <div class="tl-step" onclick="activateStep(this,6)">
+          <div class="tl-circle" style="border-color:var(--improve);color:var(--improve)">🔄</div>
+          <div class="tl-label" style="color:var(--improve)">Adapt</div>
+          <div class="tl-sublabel">Orchestrator<br>rewrites prompts</div>
+        </div>
+
+        <div class="tl-step" onclick="activateStep(this,7)">
+          <div class="tl-circle" style="border-color:var(--hitl);color:var(--hitl)">✅</div>
+          <div class="tl-label" style="color:var(--hitl)">Ship / HITL</div>
+          <div class="tl-sublabel">Human gate or<br>auto-approve</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  VIEW 2: AGENT CARDS
+══════════════════════════════════════════════════ -->
+<div id="view-agents" class="view">
+  <div class="agents-grid">
+
+    <!-- Orchestrator -->
+    <div class="agent-detail-card" style="border-color:rgba(255,107,53,0.3)" onclick="openModal('orch')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--orch);border-radius:14px 14px 0 0"></div>
+      <div class="adc-top">
+        <div class="adc-icon">🧠</div>
+        <div class="adc-meta">
+          <div class="adc-name" style="color:var(--orch)">Orchestrator Agent</div>
+          <div class="adc-role">Plans, routes, and self-improves the loop</div>
+          <div class="adc-model" style="background:rgba(255,107,53,0.1);color:var(--orch)">Claude Sonnet 4.6</div>
+        </div>
+      </div>
+      <div class="adc-section">
+        <div class="adc-section-title">Core Capabilities</div>
+        <div class="capability-list">
+          <div class="cap-item"><div class="cap-dot" style="background:var(--orch)"></div>Decomposes user task into subtasks for coding agent</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--orch)"></div>Routes between agents based on quality scores</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--orch)"></div><strong>Self-improves:</strong> rewrites coding prompt if review fails 2× in a row</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--orch)"></div>Controls max_iterations to prevent infinite loops</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--orch)"></div>Reads memory KB to avoid repeating past mistakes</div>
+        </div>
+      </div>
+      <div class="tool-chips">
+        <span class="tool-chip">Plan & Execute</span>
+        <span class="tool-chip">Reflection</span>
+        <span class="tool-chip">prompt_rewriter</span>
+        <span class="tool-chip">memory_lookup</span>
+      </div>
+      <div class="loop-badge" style="background:rgba(255,107,53,0.1);color:var(--orch)">♾️ Self-Improving</div>
+    </div>
+
+    <!-- Coding Agent -->
+    <div class="agent-detail-card" style="border-color:rgba(0,212,255,0.3)" onclick="openModal('code')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--code);border-radius:14px 14px 0 0"></div>
+      <div class="adc-top">
+        <div class="adc-icon">⌨️</div>
+        <div class="adc-meta">
+          <div class="adc-name" style="color:var(--code)">Coding Agent</div>
+          <div class="adc-role">Generates, refactors, and patches code iteratively</div>
+          <div class="adc-model" style="background:rgba(0,212,255,0.1);color:var(--code)">Gemini 2.5 Flash (free)</div>
+        </div>
+      </div>
+      <div class="adc-section">
+        <div class="adc-section-title">Core Capabilities</div>
+        <div class="capability-list">
+          <div class="cap-item"><div class="cap-dot" style="background:var(--code)"></div>Generates code from task spec + memory context</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--code)"></div>Writes unit + integration tests alongside code</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--code)"></div>Receives Review Agent critique → applies targeted patches</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--code)"></div>Produces structured diff for each iteration</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--code)"></div>Executes code in sandbox and self-corrects on error</div>
+        </div>
+      </div>
+      <div class="tool-chips">
+        <span class="tool-chip">code_execute</span>
+        <span class="tool-chip">write_file</span>
+        <span class="tool-chip">bash</span>
+        <span class="tool-chip">diff_apply</span>
+        <span class="tool-chip">ReAct</span>
+      </div>
+      <div class="loop-badge" style="background:rgba(0,212,255,0.1);color:var(--code)">⌨️ Generate + Refine</div>
+    </div>
+
+    <!-- Review Agent -->
+    <div class="agent-detail-card" style="border-color:rgba(180,79,255,0.3)" onclick="openModal('review')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--review);border-radius:14px 14px 0 0"></div>
+      <div class="adc-top">
+        <div class="adc-icon">🔍</div>
+        <div class="adc-meta">
+          <div class="adc-name" style="color:var(--review)">Review Agent</div>
+          <div class="adc-role">Critiques code quality, logic, and security</div>
+          <div class="adc-model" style="background:rgba(180,79,255,0.1);color:var(--review)">Groq Llama 3.3 70B (free)</div>
+        </div>
+      </div>
+      <div class="adc-section">
+        <div class="adc-section-title">Core Capabilities</div>
+        <div class="capability-list">
+          <div class="cap-item"><div class="cap-dot" style="background:var(--review)"></div>Scores code on: correctness, complexity, security, style (0–1 each)</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--review)"></div>Returns structured issues[] with line references</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--review)"></div>Flags security vulnerabilities (OWASP top 10)</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--review)"></div>Compares current vs previous iteration — measures improvement</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--review)"></div>Feeds score into Orchestrator routing decision</div>
+        </div>
+      </div>
+      <div class="tool-chips">
+        <span class="tool-chip">Reflection</span>
+        <span class="tool-chip">static_analysis</span>
+        <span class="tool-chip">score_rubric</span>
+        <span class="tool-chip">diff_compare</span>
+      </div>
+      <div class="loop-badge" style="background:rgba(180,79,255,0.1);color:var(--review)">🔍 Critique Pattern</div>
+    </div>
+
+    <!-- Quality Agent -->
+    <div class="agent-detail-card" style="border-color:rgba(0,255,136,0.25)" onclick="openModal('quality')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--quality);border-radius:14px 14px 0 0"></div>
+      <div class="adc-top">
+        <div class="adc-icon">✅</div>
+        <div class="adc-meta">
+          <div class="adc-name" style="color:var(--quality)">Quality Agent</div>
+          <div class="adc-role">Runtime validation — tests, coverage, lint, benchmarks</div>
+          <div class="adc-model" style="background:rgba(0,255,136,0.08);color:var(--quality)">Groq / Cerebras (free)</div>
+        </div>
+      </div>
+      <div class="adc-section">
+        <div class="adc-section-title">Core Capabilities</div>
+        <div class="capability-list">
+          <div class="cap-item"><div class="cap-dot" style="background:var(--quality)"></div>Executes pytest — parses pass/fail + coverage %</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--quality)"></div>Runs ruff / flake8 lint and complexity (radon)</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--quality)"></div>Benchmarks performance against baseline</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--quality)"></div>Hard gate: coverage &lt; 80% → mandatory retry</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--quality)"></div>Emits quality_report to Orchestrator + Memory</div>
+        </div>
+      </div>
+      <div class="tool-chips">
+        <span class="tool-chip">pytest_runner</span>
+        <span class="tool-chip">coverage.py</span>
+        <span class="tool-chip">ruff</span>
+        <span class="tool-chip">radon</span>
+        <span class="tool-chip">bandit</span>
+      </div>
+      <div class="loop-badge" style="background:rgba(0,255,136,0.08);color:var(--quality)">✅ Gate Keeper</div>
+    </div>
+
+    <!-- Memory Agent -->
+    <div class="agent-detail-card" style="border-color:rgba(255,215,0,0.25)" onclick="openModal('memory')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--memory);border-radius:14px 14px 0 0"></div>
+      <div class="adc-top">
+        <div class="adc-icon">🗃️</div>
+        <div class="adc-meta">
+          <div class="adc-name" style="color:var(--memory)">Memory / KB Agent</div>
+          <div class="adc-role">Persists patterns, errors, and prompt improvements across runs</div>
+          <div class="adc-model" style="background:rgba(255,215,0,0.08);color:var(--memory)">Pinecone + Redis + SQLite</div>
+        </div>
+      </div>
+      <div class="adc-section">
+        <div class="adc-section-title">Core Capabilities</div>
+        <div class="capability-list">
+          <div class="cap-item"><div class="cap-dot" style="background:var(--memory)"></div>Stores every (task, prompt, code, score, outcome) tuple</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--memory)"></div>RAG retrieval: "find similar past tasks that failed"</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--memory)"></div>Maintains prompt_evolution log per task type</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--memory)"></div>Surfaces "anti-patterns" to Coding Agent at start</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--memory)"></div>Enables cross-run learning — the system genuinely improves</div>
+        </div>
+      </div>
+      <div class="tool-chips">
+        <span class="tool-chip">vector_store</span>
+        <span class="tool-chip">semantic_search</span>
+        <span class="tool-chip">prompt_log</span>
+        <span class="tool-chip">pattern_extract</span>
+      </div>
+      <div class="loop-badge" style="background:rgba(255,215,0,0.08);color:var(--memory)">🗃️ Cross-Run Learning</div>
+    </div>
+
+    <!-- Self-Improve Meta-agent -->
+    <div class="agent-detail-card" style="border-color:rgba(255,51,102,0.3)" onclick="openModal('meta')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--hitl),var(--orch));border-radius:14px 14px 0 0"></div>
+      <div class="adc-top">
+        <div class="adc-icon">🔄</div>
+        <div class="adc-meta">
+          <div class="adc-name" style="color:var(--hitl)">Self-Improve Meta-Agent</div>
+          <div class="adc-role">Rewrites agent prompts based on failure analysis</div>
+          <div class="adc-model" style="background:rgba(255,51,102,0.1);color:var(--hitl)">Claude Sonnet 4.6 + Memory</div>
+        </div>
+      </div>
+      <div class="adc-section">
+        <div class="adc-section-title">Core Capabilities</div>
+        <div class="capability-list">
+          <div class="cap-item"><div class="cap-dot" style="background:var(--hitl)"></div>Analyzes failure modes across N recent loop runs</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--hitl)"></div>Generates improved system prompt variants (A/B)</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--hitl)"></div>Evaluates prompt variants on held-out test cases</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--hitl)"></div>Promotes best-performing prompt → Production</div>
+          <div class="cap-item"><div class="cap-dot" style="background:var(--hitl)"></div>Snapshots old prompts for rollback (versioned in Redis)</div>
+        </div>
+      </div>
+      <div class="tool-chips">
+        <span class="tool-chip">prompt_mutation</span>
+        <span class="tool-chip">eval_harness</span>
+        <span class="tool-chip">A/B test</span>
+        <span class="tool-chip">promote</span>
+        <span class="tool-chip">rollback</span>
+      </div>
+      <div class="loop-badge" style="background:rgba(255,51,102,0.1);color:var(--hitl)">♾️ Meta-Learning</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  VIEW 3: SELF-IMPROVEMENT MECHANICS
+══════════════════════════════════════════════════ -->
+<div id="view-improve" class="view">
+  <div class="improve-grid">
+
+    <div class="improve-block">
+      <div class="ib-title"><div class="ib-icon">🔁</div> Inner Loop — Per-Task Refinement</div>
+      <div class="feedback-loop">
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,107,53,0.2);color:var(--orch)">1</div><div><strong style="color:var(--orch)">Orchestrator plans</strong> — decomposes task, retrieves similar past failures from Memory KB, injects anti-patterns into coding prompt</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(0,212,255,0.2);color:var(--code)">2</div><div><strong style="color:var(--code)">Coding Agent generates</strong> — writes code + tests in sandbox, includes self-check: "does this pass obvious edge cases?"</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(180,79,255,0.2);color:var(--review)">3</div><div><strong style="color:var(--review)">Review Agent critiques</strong> — scores (0–1) on: correctness · security · complexity · style; emits structured issues[]</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(0,255,136,0.15);color:var(--quality)">4</div><div><strong style="color:var(--quality)">Quality Agent tests</strong> — pytest + lint + coverage; emits pass/fail gate. Coverage &lt; 80% = hard retry</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,107,53,0.2);color:var(--orch)">5</div><div><strong style="color:var(--orch)">Orchestrator decides</strong>: score ≥ 0.85 AND tests pass → proceed. Else → patch prompt + loop back to step 2. Max 5 retries</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,215,0,0.15);color:var(--memory)">6</div><div><strong style="color:var(--memory)">Memory writes</strong> — persists (task, best_prompt, final_code, scores, iteration_count) for future retrieval</div></div>
+      </div>
+    </div>
+
+    <div class="improve-block">
+      <div class="ib-title"><div class="ib-icon">♾️</div> Outer Loop — Prompt Self-Improvement</div>
+      <div class="feedback-loop">
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,51,102,0.2);color:var(--hitl)">A</div><div><strong style="color:var(--hitl)">Trigger</strong> — fires every N=10 completed runs, OR when avg_score drops below 0.75 across last 5 runs</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,51,102,0.2);color:var(--hitl)">B</div><div><strong style="color:var(--hitl)">Failure analysis</strong> — Meta-agent reads last N run traces from Memory, identifies failure patterns: "always fails on async code"</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,51,102,0.2);color:var(--hitl)">C</div><div><strong style="color:var(--hitl)">Prompt mutation</strong> — Meta-agent generates 3 candidate improved prompts, each addressing top failure mode</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,51,102,0.2);color:var(--hitl)">D</div><div><strong style="color:var(--hitl)">Eval harness</strong> — runs each candidate on 5 held-out test tasks, measures avg_score + pass_rate</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,51,102,0.2);color:var(--hitl)">E</div><div><strong style="color:var(--hitl)">Promote best</strong> — winner replaces active system prompt. Loser prompts archived in Redis with version tag</div></div>
+        <div class="fl-arrow">↓</div>
+        <div class="fl-step"><div class="fl-num" style="background:rgba(255,215,0,0.15);color:var(--memory)">F</div><div><strong style="color:var(--memory)">Log prompt lineage</strong> — prompt_v1 → prompt_v2 chain stored; rollback available if next 3 runs degrade</div></div>
+      </div>
+    </div>
+
+    <!-- Quality metrics over time (simulated) -->
+    <div class="improve-block" style="grid-column: 1 / -1">
+      <div class="ib-title"><div class="ib-icon">📈</div> Quality Score Evolution — Across Loop Iterations</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:4px">
+        <div>
+          <div style="font-size:0.65rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Per-Metric Score (latest run)</div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">Correctness</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:91%;background:var(--quality)"></div></div><span class="metric-val" style="color:var(--quality)">0.91</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">Test Coverage</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:87%;background:var(--code)"></div></div><span class="metric-val" style="color:var(--code)">87%</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">Security Score</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:94%;background:var(--review)"></div></div><span class="metric-val" style="color:var(--review)">0.94</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">Code Complexity</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:78%;background:var(--orch)"></div></div><span class="metric-val" style="color:var(--orch)">CC=7</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">Avg Iterations</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:60%;background:var(--memory)"></div></div><span class="metric-val" style="color:var(--memory)">2.1</span></div>
+        </div>
+        <div>
+          <div style="font-size:0.65rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Improvement Across Prompt Versions</div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">prompt_v1 avg</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:54%;background:var(--muted2)"></div></div><span class="metric-val" style="color:var(--muted)">0.54</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">prompt_v2 avg</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:68%;background:var(--muted)"></div></div><span class="metric-val" style="color:var(--muted)">0.68</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">prompt_v3 avg</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:79%;background:var(--code)"></div></div><span class="metric-val" style="color:var(--code)">0.79</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">prompt_v4 avg</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:88%;background:var(--quality)"></div></div><span class="metric-val" style="color:var(--quality)">0.88</span></div>
+          <div class="metric-row"><span style="font-size:0.72rem;color:var(--text)">prompt_v5 (live)</span><div class="metric-bar-wrap"><div class="metric-bar" style="width:93%;background:linear-gradient(90deg,var(--quality),var(--code))"></div></div><span class="metric-val" style="color:var(--quality)">0.93 ↑</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  VIEW 4: LANGGRAPH CODE
+══════════════════════════════════════════════════ -->
+<div id="view-code" class="view">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;min-width:900px">
+
+    <div>
+      <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px">State Schema + Graph Definition</div>
+      <div class="code-block">
+<span style="color:var(--muted)">from</span> <span style="color:var(--code)">langgraph.graph</span> <span style="color:var(--muted)">import</span> StateGraph, START, END<br>
+<span style="color:var(--muted)">from</span> <span style="color:var(--code)">typing</span> <span style="color:var(--muted)">import</span> TypedDict, List, Optional, Annotated<br>
+<span style="color:var(--muted)">from</span> <span style="color:var(--code)">langgraph.checkpoint.redis</span> <span style="color:var(--muted)">import</span> RedisSaver<br><br>
+
+<span style="color:var(--review)">class</span> <span style="color:var(--memory)">AgentLoopState</span>(TypedDict):<br>
+<span style="color:var(--muted)">  # Input</span><br>
+&nbsp;&nbsp;<span style="color:var(--code)">task</span>: str<br>
+&nbsp;&nbsp;<span style="color:var(--code)">spec</span>: dict<br>
+<span style="color:var(--muted)">  # Orchestrator</span><br>
+&nbsp;&nbsp;<span style="color:var(--code)">plan</span>: Optional[dict]<br>
+&nbsp;&nbsp;<span style="color:var(--code)">active_prompt</span>: str<br>
+&nbsp;&nbsp;<span style="color:var(--code)">iteration</span>: int<br>
+<span style="color:var(--muted)">  # Coding Agent</span><br>
+&nbsp;&nbsp;<span style="color:var(--code)">generated_code</span>: Optional[str]<br>
+&nbsp;&nbsp;<span style="color:var(--code)">generated_tests</span>: Optional[str]<br>
+&nbsp;&nbsp;<span style="color:var(--code)">code_diff</span>: Optional[str]<br>
+<span style="color:var(--muted)">  # Review Agent</span><br>
+&nbsp;&nbsp;<span style="color:var(--code)">review_score</span>: Optional[float]<br>
+&nbsp;&nbsp;<span style="color:var(--code)">review_issues</span>: Optional[List[dict]]<br>
+<span style="color:var(--muted)">  # Quality Agent</span><br>
+&nbsp;&nbsp;<span style="color:var(--code)">test_passed</span>: Optional[bool]<br>
+&nbsp;&nbsp;<span style="color:var(--code)">coverage_pct</span>: Optional[float]<br>
+&nbsp;&nbsp;<span style="color:var(--code)">quality_report</span>: Optional[dict]<br>
+<span style="color:var(--muted)">  # Memory</span><br>
+&nbsp;&nbsp;<span style="color:var(--code)">memory_context</span>: Optional[str]<br>
+&nbsp;&nbsp;<span style="color:var(--code)">anti_patterns</span>: Optional[List[str]]<br>
+<span style="color:var(--muted)">  # Control</span><br>
+&nbsp;&nbsp;<span style="color:var(--code)">max_iterations</span>: int<br>
+&nbsp;&nbsp;<span style="color:var(--code)">should_escalate</span>: bool<br>
+&nbsp;&nbsp;<span style="color:var(--code)">run_id</span>: str<br><br>
+
+<span style="color:var(--muted)"># ── Build the graph ──</span><br>
+builder = StateGraph(<span style="color:var(--memory)">AgentLoopState</span>)<br><br>
+
+builder.add_node(<span style="color:var(--quality)">"orchestrate"</span>, orchestrator_node)<br>
+builder.add_node(<span style="color:var(--quality)">"memory_retrieve"</span>, memory_retrieve_node)<br>
+builder.add_node(<span style="color:var(--quality)">"code"</span>, coding_agent_node)<br>
+builder.add_node(<span style="color:var(--quality)">"review"</span>, review_agent_node)<br>
+builder.add_node(<span style="color:var(--quality)">"quality"</span>, quality_agent_node)<br>
+builder.add_node(<span style="color:var(--quality)">"memory_write"</span>, memory_write_node)<br>
+builder.add_node(<span style="color:var(--quality)">"hitl"</span>, hitl_node)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--muted)"># interrupt</span><br>
+builder.add_node(<span style="color:var(--quality)">"self_improve"</span>, self_improve_node)<br><br>
+
+builder.add_edge(START, <span style="color:var(--quality)">"orchestrate"</span>)<br>
+builder.add_edge(<span style="color:var(--quality)">"orchestrate"</span>, <span style="color:var(--quality)">"memory_retrieve"</span>)<br>
+builder.add_edge(<span style="color:var(--quality)">"memory_retrieve"</span>, <span style="color:var(--quality)">"code"</span>)<br>
+builder.add_edge(<span style="color:var(--quality)">"code"</span>, <span style="color:var(--quality)">"review"</span>)<br>
+builder.add_edge(<span style="color:var(--quality)">"review"</span>, <span style="color:var(--quality)">"quality"</span>)<br><br>
+
+<span style="color:var(--muted)"># ── Conditional routing ──</span><br>
+builder.add_conditional_edges(<br>
+&nbsp;&nbsp;<span style="color:var(--quality)">"quality"</span>, route_after_quality,<br>
+&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"retry"</span>: <span style="color:var(--quality)">"orchestrate"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--muted)"># loop back</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"escalate"</span>: <span style="color:var(--quality)">"hitl"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--muted)"># human gate</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"pass"</span>: <span style="color:var(--quality)">"memory_write"</span>,&nbsp;&nbsp;&nbsp;<span style="color:var(--muted)"># success</span><br>
+&nbsp;&nbsp;}<br>
+)<br>
+builder.add_edge(<span style="color:var(--quality)">"memory_write"</span>, <span style="color:var(--quality)">"self_improve"</span>)<br>
+builder.add_edge(<span style="color:var(--quality)">"self_improve"</span>, END)<br>
+builder.add_edge(<span style="color:var(--quality)">"hitl"</span>, <span style="color:var(--quality)">"code"</span>)<br><br>
+
+graph = builder.compile(<br>
+&nbsp;&nbsp;checkpointer=RedisSaver(client),<br>
+&nbsp;&nbsp;interrupt_before=[<span style="color:var(--quality)">"hitl"</span>]<br>
+)
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px">Routing Function</div>
+        <div class="code-block">
+<span style="color:var(--review)">def</span> <span style="color:var(--code)">route_after_quality</span>(state: <span style="color:var(--memory)">AgentLoopState</span>) -> str:<br>
+&nbsp;&nbsp;score = state[<span style="color:var(--quality)">"review_score"</span>] <span style="color:var(--muted)">or</span> 0.0<br>
+&nbsp;&nbsp;passed = state[<span style="color:var(--quality)">"test_passed"</span>] <span style="color:var(--muted)">or</span> False<br>
+&nbsp;&nbsp;coverage = state[<span style="color:var(--quality)">"coverage_pct"</span>] <span style="color:var(--muted)">or</span> 0.0<br>
+&nbsp;&nbsp;i = state[<span style="color:var(--quality)">"iteration"</span>]<br>
+&nbsp;&nbsp;max_i = state[<span style="color:var(--quality)">"max_iterations"</span>]<br><br>
+
+&nbsp;&nbsp;<span style="color:var(--muted)"># Hard escalation</span><br>
+&nbsp;&nbsp;<span style="color:var(--review)">if</span> i >= max_i:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--review)">return</span> <span style="color:var(--quality)">"escalate"</span>&nbsp;&nbsp;<span style="color:var(--muted)"># HITL takes over</span><br><br>
+
+&nbsp;&nbsp;<span style="color:var(--muted)"># Security flag → always escalate</span><br>
+&nbsp;&nbsp;<span style="color:var(--review)">if</span> any(i[<span style="color:var(--quality)">"type"</span>]==<span style="color:var(--quality)">"security"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--review)">for</span> i <span style="color:var(--review)">in</span> state[<span style="color:var(--quality)">"review_issues"</span>] <span style="color:var(--muted)">or</span> []):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--review)">return</span> <span style="color:var(--quality)">"escalate"</span><br><br>
+
+&nbsp;&nbsp;<span style="color:var(--muted)"># Pass gate</span><br>
+&nbsp;&nbsp;<span style="color:var(--review)">if</span> score >= 0.85 <span style="color:var(--review)">and</span> passed <span style="color:var(--review)">and</span> coverage >= 80:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--review)">return</span> <span style="color:var(--quality)">"pass"</span><br><br>
+
+&nbsp;&nbsp;<span style="color:var(--review)">return</span> <span style="color:var(--quality)">"retry"</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--muted)"># loop</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px">Self-Improve Node</div>
+        <div class="code-block">
+<span style="color:var(--review)">async def</span> <span style="color:var(--code)">self_improve_node</span>(state):<br>
+&nbsp;&nbsp;<span style="color:var(--muted)"># Only triggers every N=10 runs</span><br>
+&nbsp;&nbsp;<span style="color:var(--review)">if</span> <span style="color:var(--review)">not</span> should_trigger_improve():<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--review)">return</span> state<br><br>
+
+&nbsp;&nbsp;<span style="color:var(--muted)"># Pull last 10 run traces</span><br>
+&nbsp;&nbsp;traces = memory.get_recent_runs(n=10)<br>
+&nbsp;&nbsp;failures = [t <span style="color:var(--review)">for</span> t <span style="color:var(--review)">in</span> traces<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--review)">if</span> t[<span style="color:var(--quality)">"avg_score"</span>] < 0.75]<br><br>
+
+&nbsp;&nbsp;<span style="color:var(--muted)"># Ask Claude to mutate the prompt</span><br>
+&nbsp;&nbsp;new_prompts = <span style="color:var(--review)">await</span> meta_llm.generate(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;system=PROMPT_ENGINEER_SYSTEM,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;user=f<span style="color:var(--quality)">"Failures: {failures}\n"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f<span style="color:var(--quality)">"Current prompt: {state['active_prompt']}\n"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f<span style="color:var(--quality)">"Generate 3 improved variants."</span><br>
+&nbsp;&nbsp;)<br><br>
+
+&nbsp;&nbsp;<span style="color:var(--muted)"># Eval on held-out test cases</span><br>
+&nbsp;&nbsp;best = <span style="color:var(--review)">await</span> eval_harness.pick_best(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;candidates=new_prompts,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;test_cases=EVAL_SUITE<br>
+&nbsp;&nbsp;)<br><br>
+
+&nbsp;&nbsp;<span style="color:var(--muted)"># Persist + promote</span><br>
+&nbsp;&nbsp;memory.save_prompt_version(best)<br>
+&nbsp;&nbsp;<span style="color:var(--review)">return</span> {**state, <span style="color:var(--quality)">"active_prompt"</span>: best}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px">Model Router Config</div>
+        <div class="code-block">
+AGENT_MODELS = {<br>
+&nbsp;&nbsp;<span style="color:var(--quality)">"orchestrator"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"primary"</span>: <span style="color:var(--quality)">"anthropic/claude-sonnet-4-6"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"fallback"</span>: <span style="color:var(--quality)">"gemini/gemini-2.5-flash"</span>,<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span style="color:var(--quality)">"coding"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"primary"</span>: <span style="color:var(--quality)">"gemini/gemini-2.5-flash"</span>,&nbsp;&nbsp;<span style="color:var(--muted)"># free</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"fallback"</span>: <span style="color:var(--quality)">"anthropic/claude-haiku-4-5"</span>,<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span style="color:var(--quality)">"review"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"primary"</span>: <span style="color:var(--quality)">"groq/llama-3.3-70b-versatile"</span>,<span style="color:var(--muted)"># free+fast</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"fallback"</span>: <span style="color:var(--quality)">"gemini/gemini-2.5-flash"</span>,<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span style="color:var(--quality)">"quality"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"primary"</span>: <span style="color:var(--quality)">"groq/llama-3.3-70b-versatile"</span>,<span style="color:var(--muted)"># free</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"fallback"</span>: <span style="color:var(--quality)">"cerebras/llama-3.3-70b"</span>,<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span style="color:var(--quality)">"meta_improve"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--quality)">"primary"</span>: <span style="color:var(--quality)">"anthropic/claude-sonnet-4-6"</span>,<span style="color:var(--muted)"># best reasoning</span><br>
+&nbsp;&nbsp;},<br>
+}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  MODAL
+══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalCheck(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-close" onclick="closeModal()">✕</div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──
+function switchView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('view-' + id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ── Timeline step ──
+function activateStep(el, idx) {
+  document.querySelectorAll('.tl-step').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Modal content ──
+const MODALS = {
+  orch: {
+    icon: '🧠', name: 'Orchestrator Agent', color: 'var(--orch)',
+    desc: 'The director of the loop. Plans tasks, controls iteration, routes between agents, and self-improves system prompts when quality degrades.',
+    specs: [
+      ['Model', 'Claude Sonnet 4.6 (primary)'],
+      ['Fallback', 'Gemini 2.5 Flash'],
+      ['Pattern', 'Plan & Execute + Reflection'],
+      ['Max iterations', '5 (configurable)'],
+      ['Self-improve trigger', 'avg_score < 0.75 over 5 runs'],
+      ['Memory access', 'Read anti-patterns before coding'],
+      ['Prompt control', 'Rewrites coding_agent system prompt'],
+    ],
+    tools: ['plan_decompose', 'route_decision', 'prompt_rewrite', 'memory_query', 'iteration_control'],
+  },
+  code: {
+    icon: '⌨️', name: 'Coding Agent', color: 'var(--code)',
+    desc: 'Generates code, writes tests, and applies targeted patches when Review Agent returns critique. Runs in a sandboxed executor.',
+    specs: [
+      ['Model', 'Gemini 2.5 Flash (free, 1M ctx)'],
+      ['Fallback', 'Claude Haiku 4.5'],
+      ['Pattern', 'ReAct (reason → act → observe)'],
+      ['Sandbox', 'Docker container (ephemeral)'],
+      ['Output format', 'code + tests + diff JSON'],
+      ['Self-check', 'Runs code before handing off'],
+      ['Patch mode', 'Applies targeted diff from Review Agent'],
+    ],
+    tools: ['code_execute', 'write_file', 'bash_run', 'diff_apply', 'sandbox_exec'],
+  },
+  review: {
+    icon: '🔍', name: 'Review Agent', color: 'var(--review)',
+    desc: 'The critic. Reads code output and scores it across 4 dimensions. Returns structured issues with line references for Coding Agent to patch.',
+    specs: [
+      ['Model', 'Groq Llama 3.3 70B (free, fast)'],
+      ['Fallback', 'Gemini 2.5 Flash'],
+      ['Pattern', 'Reflection / Critique'],
+      ['Scores', 'correctness · security · complexity · style'],
+      ['Score format', 'float 0–1 per dimension'],
+      ['Issues format', '[{line, type, severity, suggestion}]'],
+      ['Cross-iter', 'Compares delta vs previous iteration'],
+    ],
+    tools: ['static_analysis', 'score_rubric', 'diff_compare', 'security_scan'],
+  },
+  quality: {
+    icon: '✅', name: 'Quality Agent', color: 'var(--quality)',
+    desc: 'The gate keeper. Executes tests and lint in the sandbox. Issues a hard pass/fail signal. Coverage < 80% is an unconditional retry.',
+    specs: [
+      ['Model', 'Groq Llama 3.3 70B (free)'],
+      ['Fallback', 'Cerebras (1M tok/day free)'],
+      ['Test runner', 'pytest + pytest-cov'],
+      ['Linter', 'ruff + radon (complexity)'],
+      ['Security', 'bandit (Python AST scan)'],
+      ['Hard gate', 'coverage < 80% = forced retry'],
+      ['Output', 'quality_report: {pass, coverage, issues}'],
+    ],
+    tools: ['pytest_runner', 'coverage_check', 'ruff_lint', 'radon_cc', 'bandit_scan'],
+  },
+  memory: {
+    icon: '🗃️', name: 'Memory / KB Agent', color: 'var(--memory)',
+    desc: 'The long-term brain. Stores every run as a vector embedding. Retrieved context prevents agents from repeating past mistakes across sessions.',
+    specs: [
+      ['Vector DB', 'Pinecone (free starter)'],
+      ['Cache', 'Upstash Redis (free)'],
+      ['Write trigger', 'After every successful run'],
+      ['Read trigger', 'Before coding_agent execution'],
+      ['Retrieval', 'Semantic search: "similar task + fail"'],
+      ['Stores', 'task · prompt · code · scores · iteration_count'],
+      ['Prompt log', 'Full version chain with rollback'],
+    ],
+    tools: ['vector_upsert', 'semantic_search', 'prompt_version_save', 'anti_pattern_extract'],
+  },
+  meta: {
+    icon: '🔄', name: 'Self-Improve Meta-Agent', color: 'var(--hitl)',
+    desc: 'The outer loop. Periodically analyzes failure patterns across N runs and mutates agent system prompts to fix root causes — genuinely improving over time.',
+    specs: [
+      ['Model', 'Claude Sonnet 4.6 (best reasoning)'],
+      ['Trigger', 'Every 10 runs OR avg_score < 0.75'],
+      ['Reads', 'Last N traces from Memory KB'],
+      ['Generates', '3 candidate improved prompts'],
+      ['Eval', 'Runs candidates on 5 held-out test cases'],
+      ['Promotes', 'Best scoring candidate → active prompt'],
+      ['Rollback', 'Reverts if next 3 runs degrade'],
+    ],
+    tools: ['prompt_mutation', 'eval_harness', 'ab_test', 'promote_prompt', 'rollback'],
+  },
+  hub: {
+    icon: '♾️', name: 'LangGraph State Engine', color: 'var(--orch)',
+    desc: 'The backbone. Manages the full loop as a typed state graph with checkpointing, conditional routing, parallel branches, and interrupt_before for HITL gates.',
+    specs: [
+      ['Library', 'LangGraph 1.x (MIT, free)'],
+      ['State', 'TypedDict AgentLoopState'],
+      ['Checkpointer', 'RedisSaver (Upstash free)'],
+      ['HITL', 'interrupt_before=["hitl"]'],
+      ['Routing', 'add_conditional_edges (route_after_quality)'],
+      ['Observability', 'LangSmith Dev (free, 5k traces)'],
+      ['Resume', 'graph.invoke(None, config) after HITL'],
+    ],
+    tools: ['StateGraph', 'interrupt_before', 'RedisSaver', 'astream_events', 'conditional_edges'],
+  },
+};
+
+function openModal(id) {
+  const m = MODALS[id];
+  if (!m) return;
+  document.getElementById('modalContent').innerHTML = `
+    <div style="font-size:2rem;margin-bottom:8px">${m.icon}</div>
+    <div class="modal-title" style="color:${m.color}">${m.name}</div>
+    <div class="modal-sub">${m.desc}</div>
+    <div class="modal-section">
+      <div class="modal-section-title">Specifications</div>
+      ${m.specs.map(([k,v]) => `
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.72rem">
+          <span style="color:var(--muted)">${k}</span>
+          <span style="color:var(--text);font-family:var(--mono);font-size:0.65rem;font-weight:600;text-align:right;max-width:60%">${v}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Tools / Capabilities</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">
+        ${m.tools.map(t => `<span style="font-size:0.62rem;font-family:var(--mono);background:var(--s3);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--muted)">${t}</span>`).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function closeModalCheck(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+</script>
+</body>
+</html>

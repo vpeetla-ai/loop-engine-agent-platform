@@ -1,0 +1,32 @@
+name: support-intelligence
+version: "1.0"
+description: Self-improving support Q&A — ODAEU loop with RAG tuning and MCP tools
+
+state:
+  - rag_config
+  - memory_lessons
+  - session_trace
+
+loops:
+  - name: attempt
+    type: inner
+    steps: [retrieve, react, draft_answer]
+  - name: evaluate
+    type: gate
+    metrics: [recall, faithfulness]
+  - name: evolve
+    type: outer
+    on_failure: [critique, tune_rag, write_memory]
+    max_iterations: 3
+
+tools:
+  mcp:
+    - read_file
+    - search_docs
+
+memory:
+  procedural: data/memory/memory.json
+  rag_versions: data/memory/memory.json
+
+termination:
+  on: eval_passed OR max_iterations

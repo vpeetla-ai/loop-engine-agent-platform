@@ -1,0 +1,177 @@
+# LoopForge — Self-Improving Agent Harness
+
+### Agent → Harness → Loops → Memory — loop engineering with RAG tuning & MCP tools
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Portfolio](https://img.shields.io/badge/🌐_venkat--ai.com-Portfolio-5eead4?style=flat-square)](https://venkat-ai.com/work)
+[![Live Demo](https://img.shields.io/badge/▶_Live_Demo-ODAEU_Trace-8b5cf6?style=flat-square)](https://loop-engine-agent-platform.vercel.app)
+
+> **The problem:** Static RAG configs and one-shot prompts do not improve. Production agents need **closed loops** that evaluate, tune retrieval, and store lessons.
+>
+> **The goal:** Demonstrate measurable improvement across ODAEU iterations — with MCP tools, procedural memory, and inspectable traces.
+
+**Venkata Peetla** — AI Architect · Applied AI Engineer  
+[Portfolio](https://venkat-ai.com/work) · [Architecture ADRs](https://github.com/vpeetla-ai/ai-architecture-portfolio) · [GitHub org](https://github.com/vpeetla-ai)
+
+---
+
+## Why this exists
+
+| Era | Optimized | Ceiling |
+|-----|-----------|---------|
+| 2020–23 | Prompt engineering | Single turn |
+| 2023–24 | Context engineering | Static retrieval |
+| 2024–25 | Agent engineering | Autonomous actors, no system improvement |
+| **2025+** | **Loop engineering** | **Self-improving harnesses** |
+
+This repo implements the **modern agent stack**:
+
+```text
+AGENT  →  reasoning inside bounded loops
+HARNESS →  scheduler, budgets, tracing, eval gates
+LOOPS  →  ReAct (inner) · Critique · Evolve (outer)
+MEMORY →  procedural lessons + RAG version tree
+MCP    →  filesystem + search tools on real corpus
+```
+
+Research foundation: [docs/RESEARCH.md](docs/RESEARCH.md) (MemPro, MUSE, Harness Engineering, Loop Engineering taxonomy).
+
+---
+
+## Live demo
+
+| Surface | URL |
+|---------|-----|
+| **Trace UI** | [loop-engine-agent-platform.vercel.app](https://loop-engine-agent-platform.vercel.app) |
+| **API** | Deploy backend to Render (`render.yaml`) |
+
+Click **Run ODAEU loop** — watch Observe → Decide → Act → Evaluate → Update phases animate. RAG config v1 fails eval → evolve loop tunes `top_k` / `hybrid_alpha` → v2 passes.
+
+---
+
+## Architecture (60 seconds)
+
+Two complementary loops ship in this repo:
+
+### 1. ODAEU harness (RAG tuning)
+```text
+Query → Harness → ReAct + MCP → Eval → Evolve RAG config → Memory
+```
+
+### 2. LangGraph agent loop (Coding · Review · Quality)
+```text
+orchestrate → memory_retrieve → code → review → quality
+  → route_after_quality (retry | escalate HITL | pass)
+  → memory_write → self_improve → END
+```
+
+| Agent | Role |
+|-------|------|
+| **Orchestrator** | Plans task, rewrites coding prompt on retry |
+| **Coding** | Generates code + tests via MCP corpus search |
+| **Review** | Scores correctness · security · complexity · style |
+| **Quality** | Runs pytest sandbox gate (coverage ≥ 80%) |
+| **Memory** | Retrieves lessons, writes on pass |
+| **Self-improve** | Promotes prompt version on outer loop tick |
+
+### 3. Repo fix loop (real GitHub repos → PR)
+```text
+clone → pytest scan → orchestrate → patch files → review → quality
+  → branch loopforge/fix-{id} → commit → push branch → open GitHub PR
+```
+
+**Never pushes to `main`.** All fixes land on a branch + pull request for review.
+
+| Step | What happens |
+|------|----------------|
+| UI | Paste repo URL + task ("find and fix bugs") |
+| API | `POST /api/repo-fix` with `create_pr: true` |
+| Output | `pr_url`, `pr_branch`, `code_diff`, full trace |
+
+Production guide: [docs/DEPLOY.md](docs/DEPLOY.md)
+
+API: `POST /api/repo-fix` · Graph: `src/loop_engine/graph/repo_build.py`
+
+Full spec: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Loop declaration: [loops/support-intelligence.yaml](loops/support-intelligence.yaml)
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/vpeetla-ai/loop-engine-agent-platform.git
+cd loop-engine-agent-platform
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Tests (no API keys — MockLLM)
+pytest -q
+
+# API
+uvicorn app.main:app --app-dir backend --reload
+# POST http://localhost:8000/api/run  {"query": "What is loop engineering?"}
+# POST http://localhost:8000/api/benchmark
+```
+
+Optional env vars:
+```bash
+export GROQ_API_KEY=...    # live LLM on real repos
+export GITHUB_TOKEN=...    # PR workflow (branch push + create pull request)
+```
+
+```bash
+# Fix a repo and open a PR
+curl -X POST http://localhost:8000/api/repo-fix \
+  -H "Content-Type: application/json" \
+  -d '{"repo_url":"https://github.com/org/repo.git","task":"Find and fix failing tests","create_pr":true}'
+```
+
+---
+
+## What gets tuned (RAG evolve loop)
+
+Inspired by **MemPro** — treat retrieval pipeline as evolvable config, not frozen hyperparameters:
+
+| Signal | Action |
+|--------|--------|
+| `low_recall` | ↑ `top_k`, ↑ `hybrid_alpha`, ↓ `rerank_threshold` |
+| `low_faithfulness` | ↑ `rerank_threshold`, ↓ `hybrid_alpha` |
+
+Each version persisted in memory version tree. Lessons written in MUSE-style critique.
+
+---
+
+## MCP tools
+
+| Tool | Purpose |
+|------|---------|
+| `read_file` | Read corpus markdown by path |
+| `search_docs` | Full-text search across knowledge base |
+
+Extensible to stdio MCP servers — agent logic stays behind the bridge.
+
+---
+
+## Portfolio stack position
+
+| Question | System |
+|----------|--------|
+| What should agents do? | [VAP](https://github.com/vpeetla-ai/venkat-ai-platform) |
+| What are agents allowed? | [AegisAI](https://github.com/vpeetla-ai/aegisai-enterprise-agent-platform) |
+| What knowledge can they use? | [Enterprise RAG](https://github.com/vpeetla-ai/enterprise_rag_platform) |
+| How do we operate fleets? | [AegisLoop](https://github.com/vpeetla-ai/aegisloop-agentops-workbench) |
+| **How do agents improve?** | **LoopForge (this repo)** |
+
+---
+
+## Docs
+
+- [Product](docs/PRODUCT.md) · [Requirements](docs/REQUIREMENTS.md)
+- [Architecture](docs/ARCHITECTURE.md) · [Research](docs/RESEARCH.md)
+- [ADR-001: Loop harness over monolithic agent](docs/ADR-001-loop-harness-memory.md)
+
+---
+
+## License
+
+MIT — fork for your own self-improving agent harness.
