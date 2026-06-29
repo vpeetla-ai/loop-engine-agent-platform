@@ -2,6 +2,7 @@ services:
   - type: web
     name: loopforge-api
     runtime: docker
+    plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
     healthCheckPath: /health
