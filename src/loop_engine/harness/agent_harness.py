@@ -10,6 +10,7 @@ from loop_engine.loops.react_loop import ReActLoop
 from loop_engine.memory.store import MemoryStore
 from loop_engine.mcp.bridge import MCPBridge
 from loop_engine.models.llm import LLM
+from loop_engine.observability.langfuse_export import export_trace
 from loop_engine.rag.retriever import Corpus, HybridRetriever, RAGConfig
 from loop_engine.tracing import Trace
 
@@ -114,6 +115,7 @@ class AgentHarness:
               trace.add("evaluate", "run.exhausted", iteration=iteration)
 
       assert eval_result is not None
+      export_trace(trace, name="loopforge.harness", metadata={"query": query[:200], "passed": eval_result.passed})
       return HarnessResult(
           run_id=run_id,
           query=query,

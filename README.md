@@ -73,8 +73,8 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph
 | MCP tool bridge | ✅ | `read_file`, `search_docs` |
 | Procedural memory | ✅ | JSON lesson store |
 | Graph HITL escalate | ✅ | `interrupt_before` on quality fail |
-| AegisAI gateway on git push | 🟡 | Planned — see ADR-007 |
-| Langfuse / OTel export | 🟡 | trace_events in-process only |
+| AegisAI gateway on git push | ✅ | `integrations/aegis_gateway.py` — push + PR |
+| Langfuse / OTel export | ✅ | `observability/langfuse_export.py` — set `LANGFUSE_*` |
 | Live Groq codegen | 🟡 | Requires `GROQ_API_KEY` on Render |
 
 ---

@@ -23,6 +23,7 @@ from loop_engine.graph.routing import route_after_quality
 from loop_engine.graph.state import MAX_ITERATIONS_DEFAULT, AgentLoopState, DEFAULT_REPO_CODING_PROMPT
 from loop_engine.memory.store import MemoryStore
 from loop_engine.models.llm import LLM, MockLLM
+from loop_engine.observability.langfuse_export import export_trace_events
 from loop_engine.workspace.manager import WorkspaceManager
 
 def build_repo_fix_graph(
@@ -186,6 +187,9 @@ async def run_repo_fix(
     except Exception:
         workspace.cleanup()
         raise
+
+    trace_events = final.get("trace_events") or []
+    export_trace_events(run_id, trace_events, name="loopforge.repo_fix")
 
     return {
         "run_id": run_id,

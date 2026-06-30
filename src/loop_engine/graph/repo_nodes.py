@@ -14,6 +14,11 @@ from loop_engine.graph.nodes import (
 )
 from loop_engine.graph.routing import append_event
 from loop_engine.graph.state import DEFAULT_REPO_CODING_PROMPT, AgentLoopState
+from loop_engine.integrations.aegis_gateway import (
+    GIT_PR_TOOL,
+    GIT_PUSH_TOOL,
+    authorize_git_side_effect,
+)
 from loop_engine.models.llm import LLM
 from loop_engine.workspace.manager import WorkspaceManager
 
@@ -196,10 +201,59 @@ def git_pr_node(
             "status": "committed",
         }
 
+    repo_url = str(workspace.repo_url or state.get("repo_url") or "")
+    run_id = str(state.get("run_id") or "run")
+
+    push_authz = authorize_git_side_effect(
+        tool_name=GIT_PUSH_TOOL,
+        action_type="git_push",
+        target_system="github",
+        run_id=run_id,
+        repo_url=repo_url,
+        branch=fix_branch,
+    )
+    if push_authz.blocked:
+        events = append_event(state, "act", "git.push_blocked", reason=push_authz.reason, decision=push_authz.decision)
+        return {
+            "push_status": {"status": "blocked", "reason": push_authz.reason},
+            "trace_events": events,
+            "status": "gateway_blocked",
+        }
+    if push_authz.requires_approval:
+        events = append_event(state, "act", "git.push_approval_required", case_id=push_authz.case_id)
+        return {
+            "push_status": {"status": "approval_required", "case_id": push_authz.case_id},
+            "trace_events": events,
+            "status": "hitl_wait",
+        }
+
     push_result = workspace.push_branch(fix_branch, token=token)
     if push_result.get("status") != "pushed":
         events = append_event(state, "act", "git.push_branch", **push_result)
         return {"push_status": push_result, "trace_events": events, "status": "push_failed"}
+
+    pr_authz = authorize_git_side_effect(
+        tool_name=GIT_PR_TOOL,
+        action_type="open_pull_request",
+        target_system="github",
+        run_id=run_id,
+        repo_url=repo_url,
+        branch=fix_branch,
+    )
+    if pr_authz.blocked:
+        events = append_event(state, "act", "git.pr_blocked", reason=pr_authz.reason)
+        return {
+            "push_status": push_result,
+            "trace_events": events,
+            "status": "gateway_blocked",
+        }
+    if pr_authz.requires_approval:
+        events = append_event(state, "act", "git.pr_approval_required", case_id=pr_authz.case_id)
+        return {
+            "push_status": push_result,
+            "trace_events": events,
+            "status": "hitl_wait",
+        }
 
     summary = (state.get("patches") or [{}])[0].get("summary", state["task"])
     title = f"fix(loopforge): {summary[:60]}"
