@@ -63,6 +63,22 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph
 
 ---
 
+## Implementation status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| ODAEU harness + RAG evolve | ✅ | `POST /api/run` |
+| LangGraph coding loop | ✅ | Orchestrator · Review · Quality |
+| Repo fix → GitHub PR | ✅ | `loopforge/fix-*` branch, never `main` |
+| MCP tool bridge | ✅ | `read_file`, `search_docs` |
+| Procedural memory | ✅ | JSON lesson store |
+| Graph HITL escalate | ✅ | `interrupt_before` on quality fail |
+| AegisAI gateway on git push | 🟡 | Planned — see ADR-007 |
+| Langfuse / OTel export | 🟡 | trace_events in-process only |
+| Live Groq codegen | 🟡 | Requires `GROQ_API_KEY` on Render |
+
+---
+
 ## Architecture (60 seconds)
 
 Two complementary loops ship in this repo:
