@@ -23,7 +23,7 @@ git clone https://github.com/vpeetla-ai/vpeetla-ai-skills.git
 >
 > **The goal:** Demonstrate measurable improvement across ODAEU iterations — with MCP tools, procedural memory, and inspectable traces.
 
-**Venkata Peetla** — AI Architect · Applied AI Engineer  
+**Portfolio:** [Case study](https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/case-studies/loopforge-self-improving-harness.md) · [Architecture](docs/ARCHITECTURE.md) · [Tradeoffs / LOOPS](docs/LOOPS.md) · [Deploy](docs/LIVE_DEMO.md)
 [Portfolio](https://venkat-ai.com/work) · [Architecture ADRs](https://github.com/vpeetla-ai/ai-architecture-portfolio) · [GitHub org](https://github.com/vpeetla-ai)
 
 ---
