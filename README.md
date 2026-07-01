@@ -47,7 +47,7 @@ MEMORY →  procedural lessons + RAG version tree
 MCP    →  filesystem + search tools on real corpus
 ```
 
-Research foundation: [docs/RESEARCH.md](docs/RESEARCH.md) (MemPro, MUSE, Harness Engineering, Loop Engineering taxonomy).
+Research foundation: [docs/RESEARCH.md](docs/RESEARCH.md) · [docs/LOOPS.md](docs/LOOPS.md) (overnight agent protocol).
 
 ---
 
