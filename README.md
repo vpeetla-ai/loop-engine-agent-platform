@@ -49,6 +49,27 @@ HARNESS →  scheduler, budgets, tracing, eval gates
 LOOPS  →  ReAct (inner) · Critique · Evolve (outer)
 MEMORY →  procedural lessons + RAG version tree
 MCP    →  filesystem + search tools on real corpus
+OBS    →  trace-linked evals → Langfuse (LANGFUSE_*)
+```
+
+```mermaid
+flowchart TB
+    subgraph Harness["Agent harness"]
+        RUN["POST /api/run · /api/repo-fix"]
+        REC["TraceRecorder"]
+        EVAL["eval scores"]
+    end
+    subgraph Loops["LangGraph loops"]
+        ODAEU["ODAEU harness"]
+        CODE["coding loop"]
+        FIX["repo fix → PR"]
+    end
+    subgraph Obs["LLMOps export"]
+        LF["Langfuse Cloud<br/>system · trace · node"]
+    end
+    RUN --> REC --> Loops
+    Loops --> EVAL
+    REC -.-> LF
 ```
 
 Research foundation: [docs/RESEARCH.md](docs/RESEARCH.md) · [docs/LOOPS.md](docs/LOOPS.md) (overnight agent protocol).

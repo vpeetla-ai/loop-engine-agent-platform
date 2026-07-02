@@ -14,6 +14,35 @@
 
 ## Modern agent stack
 
+```mermaid
+flowchart TB
+    subgraph Harness["AGENT HARNESS"]
+        BUD["budgets · termination"]
+        TR["trace-linked recorder"]
+        EVAL["eval scores"]
+    end
+    subgraph Loops["LOOPS"]
+        REACT["ReAct"]
+        CRIT["Critique"]
+        EVOLVE["Evolve"]
+    end
+    subgraph Tools["MCP + LangGraph"]
+        MCP["MCP tools"]
+        LG["StateGraph"]
+    end
+    subgraph Mem["MEMORY + RAG"]
+        MEM["procedural lessons"]
+        RAG["RAG tuner"]
+    end
+    subgraph Obs["OBSERVABILITY"]
+        LF["Langfuse export<br/>LANGFUSE_*"]
+    end
+    Harness --> Loops --> Tools
+    Loops --> Mem
+    TR -.-> LF
+    EVAL -.-> LF
+```
+
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │                      AGENT HARNESS                          │
