@@ -3,7 +3,7 @@
 
 
 <!-- vpeetla-tech-stack:start -->
-[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square)]() [![LangGraph](https://img.shields.io/badge/LangGraph-9333EA?style=flat-square)]() [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square)]() [![MCP](https://img.shields.io/badge/MCP-374151?style=flat-square)]() [![Groq](https://img.shields.io/badge/Groq-F55036?style=flat-square)]() [![GitHub API](https://img.shields.io/badge/GitHub-API-181717?style=flat-square)]() [![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square)]() [![Render](https://img.shields.io/badge/Render-46E3B7?style=flat-square)]()
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square)]() [![LangGraph](https://img.shields.io/badge/LangGraph-9333EA?style=flat-square)]() [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square)]() [![Langfuse](https://img.shields.io/badge/Langfuse-6366F1?style=flat-square)]() [![MCP](https://img.shields.io/badge/MCP-374151?style=flat-square)]() [![Groq](https://img.shields.io/badge/Groq-F55036?style=flat-square)]() [![GitHub API](https://img.shields.io/badge/GitHub-API-181717?style=flat-square)]() [![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square)]() [![Render](https://img.shields.io/badge/Render-46E3B7?style=flat-square)]()
 <!-- vpeetla-tech-stack:end -->
 ## Agent skills (Cursor + Codex)
 
@@ -78,7 +78,7 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph
 | Procedural memory | ✅ | JSON lesson store |
 | Graph HITL escalate | ✅ | `interrupt_before` on quality fail |
 | AegisAI gateway on git push | ✅ | `integrations/aegis_gateway.py` — push + PR |
-| Langfuse / OTel export | ✅ | `observability/langfuse_export.py` — set `LANGFUSE_*` |
+| Langfuse / OTel export | ✅ | `vpeetla_observability` + `langfuse_export.py` — set `LANGFUSE_*` |
 | Live Groq codegen | 🟡 | Requires `GROQ_API_KEY` on Render |
 
 ---

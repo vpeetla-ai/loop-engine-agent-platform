@@ -96,6 +96,17 @@ curl -X POST https://YOUR-API/api/repo-fix \
 
 Response includes `pr_url`, `pr_branch`, `git_commit_sha`, `trace`.
 
+### Observability (optional — Langfuse)
+
+| Variable | Purpose |
+|----------|---------|
+| `LANGFUSE_PUBLIC_KEY` | Langfuse project public key |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key |
+| `LANGFUSE_HOST` | Default `https://cloud.langfuse.com` |
+| `LANGFUSE_ENABLED` | `true` to export harness traces |
+
+After a run, open Langfuse → **Traces** and filter by project. See [TRACE_LINKED_OBSERVABILITY](https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/docs/TRACE_LINKED_OBSERVABILITY.md).
+
 ## Local dev
 
 ```bash

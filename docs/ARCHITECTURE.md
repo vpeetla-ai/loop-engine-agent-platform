@@ -109,6 +109,23 @@ demo/          # Vercel static UI (wired to Render API)
 
 See [DEPLOY.md](DEPLOY.md) for env vars and token scopes.
 
+## Observability
+
+Trace-linked evaluation at three levels — see [TRACE_LINKED_OBSERVABILITY](https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/docs/TRACE_LINKED_OBSERVABILITY.md).
+
+| Signal | Where |
+|--------|-------|
+| Harness trace events | `trace_events` in API responses (`POST /api/run`, `/api/repo-fix`) |
+| Langfuse export (legacy) | `src/loop_engine/observability/langfuse_export.py` |
+| Shared package (synced) | `src/loop_engine/vpeetla_observability/` — wire middleware on integrate |
+
+```bash
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com
+LANGFUSE_ENABLED=true
+```
+
 ## Integration with portfolio stack ([vpeetla-ai](https://github.com/vpeetla-ai))
 
 | Question | System |
