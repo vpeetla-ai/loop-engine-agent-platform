@@ -25,7 +25,18 @@ Store as `GITHUB_TOKEN` on Render.
 Set `GROQ_API_KEY` on Render for real code generation on non-trivial repos.  
 Without it, `MockLLM` runs (demo/fixture only).
 
-## 3. Deploy API to Render
+## 3. API key (required before this is reachable from the public internet)
+
+`/api/repo-fix` and `/api/hitl/resume` clone/copy an arbitrary repo and run its code
+(`python -m pytest`, no container isolation — see
+[ADR-002](./ADR-002-repo-fix-auth-and-isolation.md)). **Set `LOOPFORGE_API_KEY` on Render**
+before making this deployment public — without it, those two endpoints have no
+authentication at all. The static demo UI (`demo/index.html`) has an "API key" field that
+sends whatever you type as `X-API-Key`; it is never stored or baked into the page, so it's
+safe to leave blank for a dev backend and fill in only when pointing the demo at a
+key-protected production backend you control.
+
+## 4. Deploy API to Render
 
 ```bash
 # Push repo to GitHub first, then:
@@ -38,6 +49,7 @@ Env vars on Render:
 ```env
 GROQ_API_KEY=gsk_...
 GITHUB_TOKEN=github_pat_...
+LOOPFORGE_API_KEY=...
 PYTHONPATH=/app/src:/app/backend
 ```
 
@@ -131,3 +143,5 @@ pytest tests/test_repo_fix.py -q
 | `push failed` | Token needs Contents write on target repo |
 | PR create 422 | Branch may already exist; re-run with new run_id |
 | Tests fail on Node/Rust repo | v1 supports pytest; extend `WorkspaceManager.run_pytest` |
+| `401 Invalid or missing X-API-Key` | Set `LOOPFORGE_API_KEY` on the client request, or unset it on Render for local/dev-only use |
+| `local_path is disabled when LOOPFORGE_API_KEY is set` | Expected — `local_path` is a dev-only convenience, not available once the API key gate is on |

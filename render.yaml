@@ -11,5 +11,7 @@ services:
         sync: false
       - key: GITHUB_TOKEN
         sync: false
+      - key: LOOPFORGE_API_KEY
+        sync: false
       - key: PYTHONPATH
         value: /app/src:/app/backend

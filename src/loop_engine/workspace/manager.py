@@ -12,7 +12,17 @@ from loop_engine.workspace import git_ops
 
 @dataclass
 class WorkspaceManager:
-    """Sandboxed repo workspace — read, write, test, git."""
+    """Repo workspace — read, write, test, git.
+
+    Not sandboxed in the security sense: `run_pytest` invokes the host's own
+    `python -m pytest` against the cloned/copied repo with no container,
+    chroot, or seccomp isolation. Only the allowed-commands list and the
+    workspace path-escape check in `_resolve` limit what a malicious repo
+    could do — a crafted `conftest.py` or test module still executes with
+    this process's privileges. Only run this against trusted repos, and see
+    docs/ADR-002-repo-fix-auth-and-isolation.md for the auth gate this
+    endpoint now sits behind and the sandboxing work still outstanding.
+    """
 
     root: Path
     branch: str = "main"

@@ -101,6 +101,8 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph
 | AegisAI gateway on git push | ✅ | `integrations/aegis_gateway.py` — push + PR |
 | Langfuse / OTel export | ✅ | `vpeetla_observability` + `langfuse_export.py` — set `LANGFUSE_*` |
 | Live Groq codegen | 🟡 | Requires `GROQ_API_KEY` on Render |
+| API-key gate on repo-fix / hitl-resume | ✅ | Set `LOOPFORGE_API_KEY` on Render — see [ADR-002](docs/ADR-002-repo-fix-auth-and-isolation.md) |
+| Sandboxed code execution for cloned repos | ❌ | `run_pytest` runs on the host with no container isolation — trusted repos only until this lands |
 
 ---
 

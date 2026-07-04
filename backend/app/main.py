@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
+import secrets
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -35,6 +36,29 @@ def _llm():
     if key:
         return GroqLLM(api_key=key)
     return MockLLM()
+
+
+def _require_api_key(x_api_key: Annotated[str | None, Header()] = None) -> None:
+    """Gate expensive/code-executing endpoints behind LOOPFORGE_API_KEY.
+
+    /api/repo-fix clones an arbitrary repo_url and runs `python -m pytest`
+    against it with no sandboxing — left open with no auth at all, anyone
+    could point it at any repo (or, via local_path, any local directory) and
+    get the server to execute that code. Unset in dev for demo convenience;
+    MUST be set in production (see docs/DEPLOY.md).
+    """
+    expected = os.getenv("LOOPFORGE_API_KEY")
+    if not expected:
+        return
+    if not x_api_key or not secrets.compare_digest(x_api_key, expected):
+        raise HTTPException(401, "Invalid or missing X-API-Key")
+
+
+def _reject_local_path_in_production(local_path: str | None) -> None:
+    """local_path lets a caller point at an arbitrary local directory — only
+    safe for local dev/testing, never once LOOPFORGE_API_KEY is enforced."""
+    if local_path and os.getenv("LOOPFORGE_API_KEY"):
+        raise HTTPException(400, "local_path is disabled when LOOPFORGE_API_KEY is set")
 
 
 def _harness() -> AgentHarness:
@@ -100,12 +124,13 @@ async def run_langgraph_loop(body: AgentLoopRequest):
     return result
 
 
-@app.post("/api/repo-fix")
+@app.post("/api/repo-fix", dependencies=[Depends(_require_api_key)])
 async def run_repo_fix_job(body: RepoFixRequest):
     """Clone repo → scan → fix → review → quality → branch → commit → PR."""
     if not body.repo_url and not body.local_path:
         raise HTTPException(400, "repo_url or local_path required")
 
+    _reject_local_path_in_production(body.local_path)
     local = Path(body.local_path).resolve() if body.local_path else None
     if local and not local.exists():
         raise HTTPException(400, f"local_path not found: {local}")
@@ -130,7 +155,7 @@ async def run_repo_fix_job(body: RepoFixRequest):
     return result
 
 
-@app.post("/api/hitl/resume")
+@app.post("/api/hitl/resume", dependencies=[Depends(_require_api_key)])
 async def hitl_resume(body: HitlResumeRequest):
     trace = _TRACES.get(body.run_id)
     workspace_path = body.workspace_path or (trace or {}).get("workspace_path")

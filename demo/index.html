@@ -488,6 +488,10 @@ body {
       <label>Task / requirement</label>
       <input id="taskInput" value="Find and fix all failing tests in this repo" />
     </div>
+    <div class="field">
+      <label>API key (only if backend requires one)</label>
+      <input id="apiKeyInput" type="password" placeholder="X-API-Key" />
+    </div>
     <label style="font-size:0.72rem;display:flex;align-items:center;gap:6px">
       <input type="checkbox" id="createPr" checked /> Create Pull Request (branch push — never writes to main)
     </label>
@@ -1396,10 +1400,13 @@ document.getElementById('runRepoBtn').onclick = async () => {
     return;
   }
   hint.textContent = 'Cloning repo and running agent loop…';
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-API-Key'] = apiKey;
   try {
     const res = await fetch(LOOPFORGE_API + '/api/repo-fix', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ task, repo_url, branch, mode, create_pr, max_iterations: 5 }),
     });
     const data = await res.json();
