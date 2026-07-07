@@ -108,6 +108,8 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph
 
 ## Architecture (60 seconds)
 
+Canonical: [`docs/diagrams/canonical-architecture.mmd`](docs/diagrams/canonical-architecture.mmd)
+
 Two complementary loops ship in this repo:
 
 ### 1. ODAEU harness (RAG tuning)

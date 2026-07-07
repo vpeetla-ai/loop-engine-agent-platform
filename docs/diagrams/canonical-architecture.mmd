@@ -1,0 +1,20 @@
+flowchart TB
+  subgraph harness["ODAEU harness — RAG tuning"]
+    Q[Query] --> H[Harness] --> EVAL[Eval] --> EVOLVE[Evolve RAG config]
+    EVOLVE --> MEM[Procedural memory]
+  end
+
+  subgraph coding["LangGraph coding loop"]
+    ORCH[Orchestrator] --> CODE[Coding] --> REV[Review] --> QA[Quality pytest]
+    QA -->|retry| ORCH
+    QA -->|pass| SI[Self-improve]
+  end
+
+  subgraph repofix["Repo fix loop"]
+    CLONE[Clone repo] --> SCAN[pytest scan] --> PATCH[Patch loop]
+    PATCH --> PR["branch loopforge/fix-* → GitHub PR"]
+  end
+
+  UI["Demo UI"] --> API["FastAPI /api/repo-fix"]
+  API --> coding
+  API --> repofix
