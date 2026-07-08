@@ -110,9 +110,9 @@ class MockLLM:
             return (
                 "Loop engineering is the discipline of designing self-improving agent systems. "
                 "A harness wraps the LLM with loops, evaluators, MCP tools, and memory — "
-                "so RAG and behavior improve after each failed evaluation."
+                "so RAG config and behavior improve after each failed evaluation."
             )
-        return "Loop engineering improves agents via eval-driven RAG tuning and procedural memory."
+        return "Loop engineering improves agents via eval-driven RAG config tuning and procedural memory."
 
 
 @dataclass
