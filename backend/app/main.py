@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -90,6 +91,34 @@ class HitlResumeRequest(BaseModel):
     run_id: str
     approve_push: bool = False
     workspace_path: str | None = None
+
+
+@app.get("/api/v1/ops/metrics")
+def ops_metrics():
+    traces = list(_TRACES.values())
+    total = len(traces)
+    passed = sum(1 for t in traces if t.get("passed") or t.get("status") == "done")
+    latencies = []
+    for t in traces:
+        for key in ("latency_ms", "runtime_ms"):
+            if t.get(key):
+                latencies.append(float(t[key]))
+        artifacts = t.get("artifacts") or {}
+        if artifacts.get("runtime_ms"):
+            latencies.append(float(artifacts["runtime_ms"]))
+    latencies.sort()
+    p95 = latencies[int(0.95 * (len(latencies) - 1))] if len(latencies) > 1 else (latencies[0] if latencies else None)
+    success = round(100.0 * passed / total, 1) if total else 100.0
+    return {
+        "service": "loop-engine-agent-platform",
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "total_runs": total,
+        "success_rate_pct": success,
+        "p95_latency_ms": int(p95) if p95 else None,
+        "active_entities": len(set(t.get("run_id") for t in traces if t.get("run_id"))),
+        "slo": {"target_uptime_pct": 99.5, "success_target_pct": 95.0},
+        "extra": {"graphs": ["odaeu-harness", "langgraph-agent-loop", "repo-fix"]},
+    }
 
 
 @app.get("/health")
