@@ -16,4 +16,11 @@ window.ARCHITECT_CONFIG = {
     { decision: "In-memory trace store", gain: "Simple portfolio deploy", trade: "Metrics reset on API restart" },
     { decision: "Mock LLM default", gain: "CI + demo without spend", trade: "Fix quality ≠ prod model quality" },
   ],
+  adrLinks: [
+    { title: "Case study — LoopForge harness", href: "https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/case-studies/loop-engine-agent-platform.md" },
+  ],
+  docsLinks: [
+    { title: "Architecture", href: "https://github.com/vpeetla-ai/loop-engine-agent-platform/blob/main/docs/ARCHITECTURE.md" },
+    { title: "SLO targets", href: "https://github.com/vpeetla-ai/loop-engine-agent-platform/blob/main/docs/SLO.md" },
+  ],
 };
