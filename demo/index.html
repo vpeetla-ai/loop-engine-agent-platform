@@ -464,20 +464,22 @@ body {
     </div>
   </div>
   <div class="tabs">
-    <button class="tab on" onclick="switchView('loop', this)">Loop Diagram</button>
+    <button class="tab on" onclick="switchView('repo', this)">Repo-fix</button>
     <button class="tab" onclick="switchView('agents', this)">Agent Cards</button>
     <button class="tab" onclick="switchView('improve', this)">Self-Improvement</button>
     <button class="tab" onclick="switchView('code', this)">LangGraph Code</button>
+    <button class="tab" onclick="switchView('loop', this)">Loop Diagram</button>
     <a href="https://github.com/vpeetla-ai/loop-engine-agent-platform" style="margin-left:12px;font-size:0.72rem;color:var(--orch);text-decoration:none;align-self:center">GitHub ↗</a>
   </div>
 </div>
 
 <div id="workbench-product">
 <div class="live-panel">
+  <p class="hint" style="margin:0 0 10px;color:var(--text);font-size:0.75rem;font-weight:600">Primary job: fix a GitHub repo via the harness and open a PR (never pushes main).</p>
   <div class="row">
     <div class="field" style="flex:2">
       <label>GitHub repo URL</label>
-      <input id="repoUrl" placeholder="https://github.com/org/repo.git" />
+      <input id="repoUrl" value="https://github.com/vpeetla-ai/golden-eval-registry.git" placeholder="https://github.com/org/repo.git" />
     </div>
     <div class="field">
       <label>Branch</label>
@@ -514,7 +516,7 @@ body {
 <!-- ══════════════════════════════════════════════════
   VIEW 1: LOOP DIAGRAM
 ══════════════════════════════════════════════════ -->
-<div id="view-loop" class="view on">
+<div id="view-loop" class="view">
   <div class="loop-canvas">
 
     <div class="ring-wrap" style="gap:24px">
@@ -1202,8 +1204,10 @@ AGENT_MODELS = {<br>
 function switchView(id, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.getElementById('view-' + id).classList.add('on');
   btn.classList.add('on');
+  if (id === 'repo') return; // live-panel (repo-fix) is the primary product surface
+  const view = document.getElementById('view-' + id);
+  if (view) view.classList.add('on');
 }
 
 // ── Timeline step ──
