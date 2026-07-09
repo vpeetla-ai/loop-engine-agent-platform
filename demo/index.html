@@ -14,6 +14,8 @@
   --s3: #101020;
   --border: #181830;
   --border2: #222240;
+  --surface: var(--s2);
+  --accent: var(--orch);
 
   /* Agent colors — each agent has its own identity */
   --orch: #FF6B35;      /* Orchestrator — amber-orange, commands */
@@ -445,6 +447,10 @@ body {
 .live-panel select { background: var(--s3); border: 1px solid var(--border2); border-radius: 6px; padding: 8px; color: var(--text); font-size: 0.72rem; }
 .live-panel .diff-box { width: 100%; max-height: 120px; overflow: auto; background: var(--s1); border: 1px solid var(--border2); border-radius: 6px; padding: 8px; font-family: var(--mono); font-size: 0.6rem; white-space: pre-wrap; }
 </style>
+<link rel="stylesheet" href="architect-panel.css" />
+<script src="config.js"></script>
+<script src="architect-config.js"></script>
+<script src="architect-panel.js"></script>
 </head>
 <body>
 
@@ -1443,9 +1449,5 @@ document.getElementById('runLoopBtn').onclick = async () => {
   }
 };
 </script>
-<link rel="stylesheet" href="architect-panel.css" />
-<script src="config.js"></script>
-<script src="architect-config.js"></script>
-<script src="architect-panel.js"></script>
 </body>
 </html>
