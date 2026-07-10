@@ -98,7 +98,7 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph
 | MCP tool bridge | ✅ | `read_file`, `search_docs` |
 | Procedural memory | ✅ | JSON lesson store |
 | Graph HITL escalate | ✅ | `interrupt_before` on quality fail |
-| AegisAI gateway on git push | ✅ | `integrations/aegis_gateway.py` — push + PR |
+| AegisAI gateway on git push | ✅ | Fail-closed under `PRODUCTION_STRICT` when AegisAI unreachable (ADR-024) |
 | Langfuse / OTel export | ✅ | `vpeetla_observability` + `langfuse_export.py` — set `LANGFUSE_*` |
 | Live Groq codegen | 🟡 | Requires `GROQ_API_KEY` on Render |
 | API-key gate on repo-fix / hitl-resume | ✅ | Set `LOOPFORGE_API_KEY` on Render — see [ADR-002](docs/ADR-002-repo-fix-auth-and-isolation.md) |
