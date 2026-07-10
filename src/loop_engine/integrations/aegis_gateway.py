@@ -30,8 +30,20 @@ def gateway_enabled() -> bool:
     return bool(os.getenv("AEGISAI_API_BASE_URL") and os.getenv("AEGISAI_GATEWAY_ENABLED", "").lower() in {"1", "true", "yes"})
 
 
+def _env_flag(name: str, default: str = "") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def production_strict() -> bool:
+    """Org PRODUCTION_STRICT (ACF ADR-024): fail-closed side effects when true."""
+    return _env_flag("PRODUCTION_STRICT")
+
+
 def _fail_open() -> bool:
-    return os.getenv("AEGISAI_GATEWAY_FAIL_OPEN", "true").lower() in {"1", "true", "yes"}
+    """Fail-open is ignored when PRODUCTION_STRICT is set."""
+    if production_strict():
+        return False
+    return _env_flag("AEGISAI_GATEWAY_FAIL_OPEN", "true")
 
 
 def authorize_git_side_effect(
@@ -45,6 +57,14 @@ def authorize_git_side_effect(
 ) -> GatewayAuthz:
     """Synchronous gateway check for git operations (push, open PR)."""
     if not gateway_enabled():
+        if production_strict():
+            return GatewayAuthz(
+                allowed=False,
+                requires_approval=False,
+                blocked=True,
+                decision="block",
+                reason="production_strict_gateway_required",
+            )
         return GatewayAuthz(
             allowed=True,
             requires_approval=False,

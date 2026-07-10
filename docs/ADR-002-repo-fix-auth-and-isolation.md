@@ -1,6 +1,6 @@
 # ADR-002: API-Key Gate on Repo-Fix Endpoints, Documented Isolation Gap
 
-**Status:** Accepted (partial — sandboxing follow-up outstanding)
+**Status:** Accepted (sandboxing addressed in ADR-003)
 **Date:** 2026-07-03
 **System:** LoopForge (`loop-engine-agent-platform`)
 
@@ -50,7 +50,7 @@ potentially cause the server's GitHub identity to open PRs against unrelated rep
 - One shared API key, no per-caller scoping or rate limiting yet.
 
 ### Follow-ups
-- ADR-003 (proposed): run `WorkspaceManager.run_pytest` inside an ephemeral container per run.
+- ~~ADR-003 (proposed): ephemeral container for `run_pytest`~~ → [ADR-003](ADR-003-ephemeral-container-sandbox.md)
 - ADR-004 (proposed): per-caller API keys + rate limiting if this is opened to more than one
   trusted operator.
 

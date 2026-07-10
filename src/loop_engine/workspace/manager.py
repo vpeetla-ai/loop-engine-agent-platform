@@ -14,14 +14,10 @@ from loop_engine.workspace import git_ops
 class WorkspaceManager:
     """Repo workspace — read, write, test, git.
 
-    Not sandboxed in the security sense: `run_pytest` invokes the host's own
-    `python -m pytest` against the cloned/copied repo with no container,
-    chroot, or seccomp isolation. Only the allowed-commands list and the
-    workspace path-escape check in `_resolve` limit what a malicious repo
-    could do — a crafted `conftest.py` or test module still executes with
-    this process's privileges. Only run this against trusted repos, and see
-    docs/ADR-002-repo-fix-auth-and-isolation.md for the auth gate this
-    endpoint now sits behind and the sandboxing work still outstanding.
+    `run_pytest` routes through `workspace.sandbox.run_pytest_sandboxed`
+    (ephemeral Docker when available; host fallback only when not
+    PRODUCTION_STRICT / SANDBOX_REQUIRED — see ADR-003). Other `run()`
+    helpers still use the host allowlist + path-escape check only.
     """
 
     root: Path
@@ -96,14 +92,9 @@ class WorkspaceManager:
         )
 
     def run_pytest(self) -> tuple[bool, float, dict]:
-        proc = self.run(["python", "-m", "pytest", "-q", "--tb=short"], timeout=180)
-        passed = proc.returncode == 0
-        coverage = 90.0 if passed else 30.0
-        return passed, coverage, {
-            "exit_code": proc.returncode,
-            "stdout": (proc.stdout or "")[-2000:],
-            "stderr": (proc.stderr or "")[-1000:],
-        }
+        from loop_engine.workspace.sandbox import run_pytest_sandboxed
+
+        return run_pytest_sandboxed(self.root, timeout=180)
 
     def create_fix_branch(self, run_id: str) -> dict[str, str]:
         branch = f"loopforge/fix-{run_id[:12]}"
