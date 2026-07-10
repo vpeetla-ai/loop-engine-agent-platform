@@ -223,6 +223,20 @@ Extensible to stdio MCP servers — agent logic stays behind the bridge.
 
 ---
 
+## Interview map
+
+**Business function:** Self-improving agent harness — ODAEU loops, RAG evolve, governed repo-fix PRs.
+
+Staff+ prep crosswalk — [playbook](https://github.com/vpeetla-ai/ai-architect-interview-playbook) · [study UI](https://ai-architect-interview-playbook-9xs.vercel.app) · [Practice Arena](https://ai-architect-practice-arena.vercel.app) · [org matrix](https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/docs/REPO_INTERVIEW_MAP.md). Only entries this repo honestly exercises.
+
+| Category | Entry | Fit |
+|----------|-------|-----|
+| System design | [Durable long-running agents](https://ai-architect-interview-playbook-9xs.vercel.app/q/ai-system-design/13-durable-long-running-agent-execution) ([md](https://github.com/vpeetla-ai/ai-architect-interview-playbook/blob/main/ai-system-design/13-durable-long-running-agent-execution.md)) | Overnight / multi-step improve loops |
+| System design | [AI coding assistant](https://ai-architect-interview-playbook-9xs.vercel.app/q/ai-system-design/15-ai-coding-assistant) ([md](https://github.com/vpeetla-ai/ai-architect-interview-playbook/blob/main/ai-system-design/15-ai-coding-assistant.md)) | Partial — repo-fix patch loop (not full IDE Copilot) |
+| System design | [Agent sandboxing / code exec](https://ai-architect-interview-playbook-9xs.vercel.app/q/ai-system-design/10-ai-agent-sandboxing-and-code-execution-security) ([md](https://github.com/vpeetla-ai/ai-architect-interview-playbook/blob/main/ai-system-design/10-ai-agent-sandboxing-and-code-execution-security.md)) | Workspace tools; never push main |
+| System design | [LLM eval & observability](https://ai-architect-interview-playbook-9xs.vercel.app/q/ai-system-design/07-llm-evaluation-observability-platform) ([md](https://github.com/vpeetla-ai/ai-architect-interview-playbook/blob/main/ai-system-design/07-llm-evaluation-observability-platform.md)) | Eval gates before accepting tune/fix |
+| Trade-offs | [Cost vs latency vs safety](https://ai-architect-interview-playbook-9xs.vercel.app/q/scalability-governance-tradeoffs/01-cost-vs-latency-vs-safety) ([md](https://github.com/vpeetla-ai/ai-architect-interview-playbook/blob/main/scalability-governance-tradeoffs/01-cost-vs-latency-vs-safety.md)) | Loop budgets vs improvement gains |
+
 ## Docs
 
 - [Product](docs/PRODUCT.md) · [Requirements](docs/REQUIREMENTS.md)
