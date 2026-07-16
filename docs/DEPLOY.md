@@ -58,9 +58,12 @@ Health check: `GET /health` → `github_configured: true`
 ## 4. Deploy demo to Vercel
 
 ```bash
-cd loop-engine-agent-platform
-npx vercel --prod
+cd loop-engine-agent-platform/demo
+vercel link   # project: demo → demo-omega-taupe.vercel.app
+vercel --prod
 ```
+
+GitHub Actions (`.github/workflows/deploy.yml`) auto-deploys on `demo/**` pushes when `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` are set in repo secrets.
 
 Set environment variable in Vercel (or inject in `demo/index.html`):
 
