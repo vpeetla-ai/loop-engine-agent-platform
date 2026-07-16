@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +26,7 @@ class HarnessResult:
     final_rag_version: int
     trace: Trace
     eval: dict
+    runtime_ms: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -34,6 +36,7 @@ class HarnessResult:
             "passed": self.passed,
             "iterations": self.iterations,
             "final_rag_version": self.final_rag_version,
+            "runtime_ms": self.runtime_ms,
             "eval": self.eval,
             "trace": self.trace.to_dict(),
         }
@@ -66,6 +69,7 @@ class AgentHarness:
       config = RAGConfig()
       react = ReActLoop(llm=self.llm, mcp=self._mcp)
       evolve = EvolveLoop(llm=self.llm, memory=self._memory)
+      t0 = time.perf_counter()
 
       answer = ""
       eval_result = None
@@ -73,6 +77,13 @@ class AgentHarness:
       for iteration in range(1, self.max_evolve_iterations + 1):
           trace.add("observe", "iteration.start", iteration=iteration, rag_version=config.version)
           hints = self._memory.hints_for_query(query)
+          trace.add(
+              "observe",
+              "memory.hints",
+              iteration=iteration,
+              hint_count=len([h for h in hints.splitlines() if h.strip()]),
+              preview=hints[:240],
+          )
           chunks = self._retriever.retrieve(query, config)
           trace.add(
               "observe",
@@ -107,6 +118,13 @@ class AgentHarness:
 
           if eval_result.passed:
               trace.add("evaluate", "run.passed", iteration=iteration)
+              trace.add(
+                  "update",
+                  "run.complete",
+                  iteration=iteration,
+                  rag_version=config.version,
+                  lesson_written=False,
+              )
               break
 
           if iteration < self.max_evolve_iterations and eval_result.failure_mode:
@@ -115,6 +133,7 @@ class AgentHarness:
               trace.add("evaluate", "run.exhausted", iteration=iteration)
 
       assert eval_result is not None
+      runtime_ms = int((time.perf_counter() - t0) * 1000)
       export_trace(trace, name="loopforge.harness", metadata={"query": query[:200], "passed": eval_result.passed})
       return HarnessResult(
           run_id=run_id,
@@ -124,6 +143,7 @@ class AgentHarness:
           iterations=iteration,
           final_rag_version=config.version,
           trace=trace,
+          runtime_ms=runtime_ms,
           eval={
               "passed": eval_result.passed,
               "recall": eval_result.recall,

@@ -1,11 +1,11 @@
 window.ARCHITECT_CONFIG = {
   tagline:
-    "Self-improving agent harness: ODAEU loop, LangGraph agent loop, and repo-fix graph with golden eval gates — improvement is a system, not a prompt tweak.",
+    "Improvement is a system — watch ODAEU phases live on the glass-box harness (trace replay from POST /api/run).",
   metricsUrl: (window.LOOPFORGE_API || "https://loopforge-api.onrender.com") + "/api/v1/ops/metrics",
   metricsPath: "/api/v1/ops/metrics",
   metricLabels: { runs: "Harness traces", entities: "Unique run IDs", latency: "P95 runtime" },
   layers: [
-    { tier: "L1", name: "Harness UI", role: "Loop visibility", components: ["ODAEU diagram", "Benchmark tab", "Repo-fix flow"] },
+    { tier: "L1", name: "Harness UI", role: "Glass-box visibility", components: ["ODAEU phase replay", "Procedural lessons + RAG lineage", "Repo-fix tab"] },
     { tier: "L2", name: "Graphs", role: "Three loop types", components: ["ODAEU harness", "LangGraph loop", "Repo-fix + HITL"] },
     { tier: "L3", name: "Eval", role: "Prove improvement", components: ["Golden benchmark", "repo_fix CI", "Mock/Groq LLM"] },
     { tier: "L4", name: "Ops", role: "Trace store", components: ["In-memory traces", "/api/v1/ops/metrics", "Security scan CI"] },

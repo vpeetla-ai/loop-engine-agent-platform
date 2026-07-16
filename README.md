@@ -84,7 +84,7 @@ Research foundation: [docs/RESEARCH.md](docs/RESEARCH.md) · [docs/LOOPS.md](doc
 | **API** | [loopforge-api.onrender.com](https://loopforge-api.onrender.com) |
 | **Health** | [`/health`](https://loopforge-api.onrender.com/health) |
 
-Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph loop. ODAEU RAG tuning available via API (`POST /api/run`).
+Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the **ODAEU glass-box harness** on the demo home tab (`POST /api/run` — phase replay highlights Observe → Update).
 
 ---
 
@@ -93,6 +93,7 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the codegen LangGraph
 | Component | Status | Notes |
 |-----------|--------|-------|
 | ODAEU harness + RAG evolve | ✅ | `POST /api/run` |
+| Glass-box harness UX | ✅ | Demo UI — phase replay from `/api/run` trace (not live SSE) |
 | LangGraph coding loop | ✅ | Orchestrator · Review · Quality |
 | Repo fix → GitHub PR | ✅ | `loopforge/fix-*` branch, never `main` |
 | MCP tool bridge | ✅ | `read_file`, `search_docs` |

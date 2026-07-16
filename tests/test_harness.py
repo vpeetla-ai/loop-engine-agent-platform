@@ -19,8 +19,28 @@ def test_harness_improves_rag_version_on_hard_query(tmp_path):
     assert result.iterations >= 1
     assert len(result.trace.events) > 5
     phases = {e.phase for e in result.trace.events}
-    assert "observe" in phases
-    assert "evaluate" in phases
+    assert phases >= {"observe", "decide", "act", "evaluate", "update"}
+    assert result.runtime_ms >= 0
+    names = [e.name for e in result.trace.events]
+    assert "memory.hints" in names
+    assert "rag.retrieve" in names
+
+
+def test_harness_trace_covers_all_odaeu_phases_on_evolve(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    harness = AgentHarness(
+        llm=MockLLM(),
+        corpus_dir=root / "corpus",
+        memory_dir=tmp_path / "memory-evolve",
+        max_evolve_iterations=3,
+    )
+    result = harness.run(
+        "What is loop engineering?",
+        gold_keywords=["nonexistent", "keywords", "only", "fail"],
+    )
+    phases = {e.phase for e in result.trace.events}
+    assert phases >= {"observe", "decide", "act", "evaluate", "update"}
+    assert any(e.name == "evolve.rag" for e in result.trace.events)
 
 
 def test_benchmark_evaluator_detects_keywords():

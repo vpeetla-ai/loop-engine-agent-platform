@@ -138,6 +138,19 @@ demo/          # Vercel static UI (wired to Render API)
 
 See [DEPLOY.md](DEPLOY.md) for env vars and token scopes.
 
+## Glass-box harness UX (demo)
+
+The Vercel demo (`demo/index.html` + `demo/glassbox.js`) replays `POST /api/run` trace events and highlights the active ODAEU phase on a single diagram.
+
+| Surface | Honesty |
+|---------|---------|
+| Phase highlight | **Replay** from returned `trace.events` (~380ms/step) — not live SSE |
+| Memory panes | **Two only:** procedural lessons + RAG config lineage (`MemoryStore`) |
+| Not shown | Semantic facts pillar, episodic episodes, SKILL.md store — not implemented |
+| Ops strip | `runtime_ms`, iterations, `final_rag_version` from API; tokens/cost only if present |
+
+Primary tab: **Harness**. Repo-fix remains a secondary tab.
+
 ## Observability
 
 Trace-linked evaluation at three levels — see [TRACE_LINKED_OBSERVABILITY](https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/docs/TRACE_LINKED_OBSERVABILITY.md).
