@@ -103,7 +103,7 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the **ODAEU glass-box
 | Langfuse / OTel export | ✅ | `vpeetla_observability` + `langfuse_export.py` — set `LANGFUSE_*` |
 | Live Groq codegen | 🟡 | Requires `GROQ_API_KEY` on Render |
 | API-key gate on repo-fix / hitl-resume | ✅ | Set `LOOPFORGE_API_KEY` on Render — see [ADR-002](docs/ADR-002-repo-fix-auth-and-isolation.md) |
-| Sandboxed code execution for cloned repos | 🟡 Partial | Ephemeral Docker via `workspace.sandbox` (ADR-003); host fallback when Docker missing unless `PRODUCTION_STRICT` / `SANDBOX_REQUIRED` |
+| Sandboxed code execution for cloned repos | ✅ Fail-closed | Ephemeral Docker via `workspace.sandbox` (ADR-003). Host fallback only when Docker missing **and** neither `PRODUCTION_STRICT` nor `SANDBOX_REQUIRED` is set. |
 
 ---
 
