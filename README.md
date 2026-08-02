@@ -100,7 +100,7 @@ Paste a GitHub repo URL → **Fix Repo & Open PR**. Or run the **ODAEU glass-box
 | Procedural memory | ✅ | JSON lesson store |
 | Graph HITL escalate | ✅ | `interrupt_before` on quality fail |
 | AegisAI gateway on git push | ✅ | Fail-closed under `PRODUCTION_STRICT` when AegisAI unreachable (ADR-024) |
-| Langfuse / OTel export | ✅ | `vpeetla_observability` + `langfuse_export.py` — set `LANGFUSE_*` |
+| Langfuse / OTel export | ✅ | `vpeetla_observability` + `langfuse_export.py` — set `LANGFUSE_*`; posture on `GET /api/observability/status` + `/api/v1/ops/metrics` |
 | Live Groq codegen | 🟡 | Requires `GROQ_API_KEY` on Render |
 | API-key gate on repo-fix / hitl-resume | ✅ | Set `LOOPFORGE_API_KEY` on Render — see [ADR-002](docs/ADR-002-repo-fix-auth-and-isolation.md) |
 | Sandboxed code execution for cloned repos | ✅ Fail-closed | Ephemeral Docker via `workspace.sandbox` (ADR-003). Host fallback only when Docker missing **and** neither `PRODUCTION_STRICT` nor `SANDBOX_REQUIRED` is set. |
