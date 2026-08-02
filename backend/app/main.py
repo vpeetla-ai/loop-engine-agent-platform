@@ -117,17 +117,72 @@ def ops_metrics():
         "p95_latency_ms": int(p95) if p95 else None,
         "active_entities": len(set(t.get("run_id") for t in traces if t.get("run_id"))),
         "slo": {"target_uptime_pct": 99.5, "success_target_pct": 95.0},
-        "extra": {"graphs": ["odaeu-harness", "langgraph-agent-loop", "repo-fix"]},
+        "extra": {
+            "graphs": ["odaeu-harness", "langgraph-agent-loop", "repo-fix"],
+            **_observability_planes(),
+        },
+    }
+
+
+def _env_flag(name: str, default: str = "") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _observability_planes() -> dict:
+    langfuse = bool(os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"))
+    return {
+        "langfuse": {
+            "configured": langfuse,
+            "host": os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com") if langfuse else None,
+        },
+        "sandbox": {
+            "required": _env_flag("PRODUCTION_STRICT") or _env_flag("SANDBOX_REQUIRED"),
+            "mode": os.getenv("LOOPFORGE_SANDBOX_MODE", "auto"),
+            "production_strict": _env_flag("PRODUCTION_STRICT"),
+        },
+        "aegis_gateway": {
+            "configured": bool(os.getenv("AEGISAI_API_BASE_URL")),
+            "enabled": _env_flag("AEGISAI_GATEWAY_ENABLED"),
+            "fail_open": (not _env_flag("PRODUCTION_STRICT")) and _env_flag("AEGISAI_GATEWAY_FAIL_OPEN", "true"),
+        },
+        "api_key_gated": bool(os.getenv("LOOPFORGE_API_KEY")),
+        "trace_store": "in_memory",
+    }
+
+
+@app.get("/api/observability/status")
+def observability_status():
+    planes = _observability_planes()
+    return {
+        "source_of_truth": "LoopForge in-memory harness traces (/api/trace/{run_id})",
+        "exporters": [
+            {
+                "name": "Langfuse",
+                "state": "configured" if planes["langfuse"]["configured"] else "unset",
+                "detail": "Optional LANGFUSE_* export of ODAEU / repo-fix events",
+            },
+            {
+                "name": "HarnessTrace",
+                "state": "live",
+                "detail": "Always-on in-process trace store (ephemeral on Render)",
+            },
+        ],
+        "planes": planes,
+        "recommendation": "Keep harness traces as demo proof; enable Langfuse for durable panel receipts.",
     }
 
 
 @app.get("/health")
 def health():
+    planes = _observability_planes()
     return {
         "status": "ok",
         "demo_mode": os.getenv("GROQ_API_KEY") is None,
         "github_configured": bool(os.getenv("GITHUB_TOKEN")),
         "graphs": ["odaeu-harness", "langgraph-agent-loop", "repo-fix"],
+        "langfuse_configured": planes["langfuse"]["configured"],
+        "sandbox_required": planes["sandbox"]["required"],
+        "api_key_gated": planes["api_key_gated"],
     }
 
 
