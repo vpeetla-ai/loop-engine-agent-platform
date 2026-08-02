@@ -35,7 +35,8 @@ flowchart TB
         RAG["RAG tuner"]
     end
     subgraph Obs["OBSERVABILITY"]
-        LF["Langfuse export<br/>LANGFUSE_*"]
+        ST["GET /api/observability/status<br/>harness SoT · Langfuse optional"]
+        LF["Langfuse export<br/>LANGFUSE_* — not the ledger"]
     end
     Harness --> Loops --> Tools
     Loops --> Mem
@@ -153,11 +154,14 @@ Primary tab: **Harness**. Repo-fix remains a secondary tab.
 
 ## Observability
 
+I’d keep harness traces as the demo proof — they’re in-process and ephemeral on Render. Langfuse is optional export when you need a durable receipt.
+
 Trace-linked evaluation at three levels — see [TRACE_LINKED_OBSERVABILITY](https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/docs/TRACE_LINKED_OBSERVABILITY.md).
 
 | Signal | Where |
 |--------|-------|
 | Harness trace events | `trace_events` in API responses (`POST /api/run`, `/api/repo-fix`) |
+| Compose honesty | `GET /api/observability/status` |
 | Langfuse export (legacy) | `src/loop_engine/observability/langfuse_export.py` |
 | Shared package (synced) | `src/loop_engine/vpeetla_observability/` — wire middleware on integrate |
 
