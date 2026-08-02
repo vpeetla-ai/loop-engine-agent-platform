@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 from loop_engine.graph.nodes import (
@@ -145,8 +146,31 @@ def repo_quality_node(state: AgentLoopState, workspace: WorkspaceManager) -> dic
     }
 
 
-def repo_review_node(state: AgentLoopState, llm: LLM) -> dict[str, Any]:
-    """Review uses diff instead of generated code blocks."""
+def repo_review_node(
+    state: AgentLoopState,
+    llm: LLM,
+    workspace: WorkspaceManager | None = None,
+) -> dict[str, Any]:
+    """Review working-tree diff via aegis-pr-review CLI; fall back to Reflection LLM."""
+    if workspace is not None:
+        from loop_engine.integrations.aegis_pr_review import (
+            report_to_review_fields,
+            run_aegis_pr_review,
+        )
+
+        report = run_aegis_pr_review(Path(workspace.root), repo_name=workspace.root.name)
+        if report is not None:
+            fields = report_to_review_fields(report)
+            events = append_event(
+                state,
+                "evaluate",
+                "review.aegis_pr_review",
+                score=fields["review_score"],
+                finding_count=fields["aegis_pr_review"]["finding_count"],
+                critical=fields["aegis_pr_review"]["critical"],
+            )
+            return {**fields, "trace_events": events}
+
     state_copy = dict(state)
     state_copy["generated_code"] = state.get("code_diff") or state.get("generated_code") or ""
     state_copy["generated_tests"] = state.get("failing_tests") or ""
