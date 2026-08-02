@@ -59,7 +59,7 @@ def build_repo_fix_graph(
         return repo_coding_node(state, model, workspace)
 
     async def n_review(state: AgentLoopState) -> dict[str, Any]:
-        return repo_review_node(state, model)
+        return repo_review_node(state, model, workspace)
 
     async def n_quality(state: AgentLoopState) -> dict[str, Any]:
         return repo_quality_node(state, workspace)
