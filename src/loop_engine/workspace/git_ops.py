@@ -48,16 +48,25 @@ def clone_repo(repo_url: str, dest: Path, branch: str = "main") -> None:
         raise RuntimeError(f"git clone failed: {proc.stderr.strip() or proc.stdout}")
 
 
+def _ensure_git_identity(cwd: Path) -> None:
+    # CI runners often lack a global git identity; set local only.
+    _run(["git", "config", "user.email", "loopforge-ci@vpeetla.ai"], cwd=cwd)
+    _run(["git", "config", "user.name", "LoopForge CI"], cwd=cwd)
+
+
 def copy_local_repo(source: Path, dest: Path, remote_url: str | None = None) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
         shutil.rmtree(dest)
     shutil.copytree(source, dest, ignore=shutil.ignore_patterns(".git", "__pycache__", ".pytest_cache"))
     _run(["git", "init"], cwd=dest)
+    _ensure_git_identity(dest)
     if remote_url:
         _run(["git", "remote", "add", "origin", remote_url], cwd=dest)
     _run(["git", "add", "-A"], cwd=dest)
-    _run(["git", "commit", "-m", "initial"], cwd=dest)
+    proc = _run(["git", "commit", "-m", "initial"], cwd=dest)
+    if proc.returncode != 0:
+        raise RuntimeError(f"initial git commit failed: {proc.stderr.strip() or proc.stdout}")
 
 
 def git_create_branch(cwd: Path, branch: str) -> dict[str, str]:
@@ -79,6 +88,7 @@ def git_status(cwd: Path) -> str:
 
 
 def git_commit(cwd: Path, message: str) -> str:
+    _ensure_git_identity(cwd)
     _run(["git", "add", "-A"], cwd=cwd)
     proc = _run(["git", "commit", "-m", message], cwd=cwd)
     if proc.returncode != 0 and "nothing to commit" in (proc.stdout + proc.stderr):
