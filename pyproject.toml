@@ -29,5 +29,5 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # Repo root must be on path so `from backend.app...` resolves in CI.
-pythonpath = [".", "src"]
+pythonpath = [".", "src", "backend"]
 asyncio_mode = "auto"
