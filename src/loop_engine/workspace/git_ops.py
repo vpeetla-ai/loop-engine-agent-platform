@@ -79,6 +79,9 @@ def git_status(cwd: Path) -> str:
 
 
 def git_commit(cwd: Path, message: str) -> str:
+    # CI runners often lack a global git identity; set local only when missing.
+    _run(["git", "config", "user.email", "loopforge-ci@vpeetla.ai"], cwd=cwd)
+    _run(["git", "config", "user.name", "LoopForge CI"], cwd=cwd)
     _run(["git", "add", "-A"], cwd=cwd)
     proc = _run(["git", "commit", "-m", message], cwd=cwd)
     if proc.returncode != 0 and "nothing to commit" in (proc.stdout + proc.stderr):
