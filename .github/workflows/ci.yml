@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call:
 
 # Org CI contract: lint → build (install) → test. Deploy remains deploy.yml on main.
 concurrency:
@@ -44,7 +45,7 @@ jobs:
       - name: Import smoke
         run: |
           python -c "from backend.app.main import app; print('app', app.title)"
-          python -c "from loopforge.graph import build_graph; print('graph ok')"
+          python -c "from loop_engine.graph.build import run_agent_loop; print('graph ok', run_agent_loop)"
 
   test:
     name: Test
