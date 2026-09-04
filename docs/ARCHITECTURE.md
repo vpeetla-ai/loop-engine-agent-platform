@@ -156,6 +156,8 @@ Primary tab: **Harness**. Repo-fix remains a secondary tab.
 
 I’d keep harness traces as the demo proof — they’re in-process and ephemeral on Render. Langfuse is optional export when you need a durable receipt.
 
+**Live production posture (checked against the running Render deploy):** `GET /health` currently reports `demo_mode: false` and `github_configured: true`, and `GET /api/observability/status` reports `planes.langfuse.configured: true`. That means the public demo is running real Groq codegen and exporting to Langfuse, not the `MockLLM` fixture fallback — this repo is not currently gated into a degraded demo path. Because these read live Render env vars, re-check both endpoints before relying on this in a case study; they will read differently if the keys are ever rotated out.
+
 Trace-linked evaluation at three levels — see [TRACE_LINKED_OBSERVABILITY](https://github.com/vpeetla-ai/ai-architecture-portfolio/blob/main/docs/TRACE_LINKED_OBSERVABILITY.md).
 
 | Signal | Where |

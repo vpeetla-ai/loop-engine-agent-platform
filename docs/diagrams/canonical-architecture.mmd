@@ -15,6 +15,7 @@ flowchart TB
     PATCH --> PR["branch loopforge/fix-* → GitHub PR"]
   end
 
-  UI["Demo UI"] --> API["FastAPI /api/repo-fix"]
-  API --> coding
-  API --> repofix
+  UI["Demo UI"] --> API["FastAPI backend/app/main.py"]
+  API -->|"POST /api/run"| harness
+  API -->|"POST /api/agent-loop"| coding
+  API -->|"POST /api/repo-fix"| repofix
